@@ -52,6 +52,8 @@
 		118EBE2D2E97165600D54B5A /* Bookmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118EBE2C2E97165600D54B5A /* Bookmark.swift */; };
 		118EBE312E9717DB00D54B5A /* URL+SecurityScoped.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118EBE302E9717DB00D54B5A /* URL+SecurityScoped.swift */; };
 		118EBE3B2E9720C500D54B5A /* ShelfStateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118EBE3A2E9720C500D54B5A /* ShelfStateViewModel.swift */; };
+		CB01000000000000000000A4 /* ClipboardStateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000000000000000000A2 /* ClipboardStateViewModel.swift */; };
+		CB01000000000000000000A5 /* ClipboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB01000000000000000000A3 /* ClipboardView.swift */; };
 		1194E87C2EA19E09009C82D6 /* ImageProcessingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1194E87B2EA19E09009C82D6 /* ImageProcessingService.swift */; };
 		1194E8852EA57D23009C82D6 /* SkyLightWindow in Frameworks */ = {isa = PBXBuildFile; productRef = 1194E8842EA57D23009C82D6 /* SkyLightWindow */; };
 		1194E8872EA6DDA7009C82D6 /* BoringNotchSkyLightWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1194E8862EA6DDA7009C82D6 /* BoringNotchSkyLightWindow.swift */; };
@@ -221,6 +223,8 @@
 		118EBE2C2E97165600D54B5A /* Bookmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Bookmark.swift; sourceTree = "<group>"; };
 		118EBE302E9717DB00D54B5A /* URL+SecurityScoped.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "URL+SecurityScoped.swift"; sourceTree = "<group>"; };
 		118EBE3A2E9720C500D54B5A /* ShelfStateViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShelfStateViewModel.swift; sourceTree = "<group>"; };
+		CB01000000000000000000A2 /* ClipboardStateViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardStateViewModel.swift; sourceTree = "<group>"; };
+		CB01000000000000000000A3 /* ClipboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardView.swift; sourceTree = "<group>"; };
 		1194E87B2EA19E09009C82D6 /* ImageProcessingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessingService.swift; sourceTree = "<group>"; };
 		1194E8862EA6DDA7009C82D6 /* BoringNotchSkyLightWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoringNotchSkyLightWindow.swift; sourceTree = "<group>"; };
 		1194E93F2EACC652009C82D6 /* Color+AccentColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+AccentColor.swift"; sourceTree = "<group>"; };
@@ -490,6 +494,7 @@
 				B1C448992C97375A001F0858 /* Tips */,
 				14C08BB72C8DE49E000F8AA0 /* Calendar */,
 				9A987A042C73CA66005CA465 /* Shelf */,
+				CB01000000000000000000A1 /* Clipboard */,
 				149E0B982C737D26006418B1 /* Webcam */,
 				B18654312C6F45AE000B926A /* Live activities */,
 				B18654302C6F4590000B926A /* Settings */,
@@ -505,6 +510,15 @@
 				B1F747F82EC7E94000F841DB /* LottieView.swift */,
 			);
 			path = components;
+			sourceTree = "<group>";
+		};
+		CB01000000000000000000A1 /* Clipboard */ = {
+			isa = PBXGroup;
+			children = (
+				CB01000000000000000000A2 /* ClipboardStateViewModel.swift */,
+				CB01000000000000000000A3 /* ClipboardView.swift */,
+			);
+			path = Clipboard;
 			sourceTree = "<group>";
 		};
 		147163B52C5D804B0068B555 /* managers */ = {
@@ -987,6 +1001,8 @@
 				1471A8592C6281BD0058408D /* BoringNotchWindow.swift in Sources */,
 				14CEF4182C5CAED300855D72 /* ContentView.swift in Sources */,
 				9A987A0D2C73CA66005CA465 /* ShelfView.swift in Sources */,
+				CB01000000000000000000A4 /* ClipboardStateViewModel.swift in Sources */,
+				CB01000000000000000000A5 /* ClipboardView.swift in Sources */,
 				1132E5142E777B920068732D /* YouTubeMusicNetworking.swift in Sources */,
 				1132E5122E777B6E0068732D /* YouTubeMusicModels.swift in Sources */,
 				11CFC65F2E097F2F00748C80 /* OnboardingView.swift in Sources */,

@@ -8,56 +8,11 @@ import SwiftUI
 struct ClipboardView: View {
     @EnvironmentObject var vm: BoringViewModel
     @StateObject private var cvm = ClipboardStateViewModel.shared
-    @State private var draft: String = ""
-    @FocusState private var draftFocused: Bool
 
     private let spacing: CGFloat = 8
 
     var body: some View {
-        HStack(spacing: 12) {
-            inputPanel
-                .frame(width: 150)
-            historyPanel
-        }
-    }
-
-    private var inputPanel: some View {
-        RoundedRectangle(cornerRadius: 16)
-            .fill(Color.white.opacity(0.05))
-            .overlay {
-                VStack(spacing: 8) {
-                    ZStack(alignment: .topLeading) {
-                        TextEditor(text: $draft)
-                            .focused($draftFocused)
-                            .font(.system(size: 11))
-                            .foregroundStyle(.white)
-                            .scrollContentBackground(.hidden)
-                            .background(Color.clear)
-
-                        if draft.isEmpty {
-                            Text("Paste or type text here")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.gray)
-                                .padding(.top, 2)
-                                .padding(.leading, 5)
-                                .allowsHitTesting(false)
-                        }
-                    }
-
-                    Button {
-                        cvm.store(draft)
-                        draft = ""
-                        draftFocused = false
-                    } label: {
-                        Text("Save")
-                            .font(.system(size: 11, weight: .medium))
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                .padding(10)
-            }
+        historyPanel
     }
 
     private var historyPanel: some View {
@@ -84,11 +39,12 @@ struct ClipboardView: View {
                         .foregroundStyle(.white, .gray)
                         .imageScale(.large)
 
-                    Text("Copied text lands here")
+                    Text("Everything you copy lands here")
                         .foregroundStyle(.gray)
                         .font(.system(.title3, design: .rounded))
                         .fontWeight(.medium)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView(.horizontal) {
                     HStack(spacing: spacing) {

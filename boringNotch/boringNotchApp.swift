@@ -281,6 +281,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
 
+        // Start pasteboard monitoring up front; otherwise nothing is captured
+        // until the Clipboard tab is opened for the first time.
+        _ = ClipboardStateViewModel.shared
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenConfigurationDidChange),

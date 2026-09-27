@@ -60,6 +60,7 @@
 		CB0200000000000000000004 /* ScreenshotSpacebarTapController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB020000000000000000000A /* ScreenshotSpacebarTapController.swift */; };
 		CB0200000000000000000005 /* ScreenshotsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB020000000000000000000B /* ScreenshotsView.swift */; };
 		CB0200000000000000000006 /* ScreenshotWheelItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB020000000000000000000C /* ScreenshotWheelItemView.swift */; };
+		CB0300000000000000000001 /* ScreenshotSelectionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0300000000000000000002 /* ScreenshotSelectionModel.swift */; };
 		1194E87C2EA19E09009C82D6 /* ImageProcessingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1194E87B2EA19E09009C82D6 /* ImageProcessingService.swift */; };
 		1194E8852EA57D23009C82D6 /* SkyLightWindow in Frameworks */ = {isa = PBXBuildFile; productRef = 1194E8842EA57D23009C82D6 /* SkyLightWindow */; };
 		1194E8872EA6DDA7009C82D6 /* BoringNotchSkyLightWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1194E8862EA6DDA7009C82D6 /* BoringNotchSkyLightWindow.swift */; };
@@ -237,6 +238,7 @@
 		CB020000000000000000000A /* ScreenshotSpacebarTapController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSpacebarTapController.swift; sourceTree = "<group>"; };
 		CB020000000000000000000B /* ScreenshotsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotsView.swift; sourceTree = "<group>"; };
 		CB020000000000000000000C /* ScreenshotWheelItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotWheelItemView.swift; sourceTree = "<group>"; };
+		CB0300000000000000000002 /* ScreenshotSelectionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSelectionModel.swift; sourceTree = "<group>"; };
 		1194E87B2EA19E09009C82D6 /* ImageProcessingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageProcessingService.swift; sourceTree = "<group>"; };
 		1194E8862EA6DDA7009C82D6 /* BoringNotchSkyLightWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoringNotchSkyLightWindow.swift; sourceTree = "<group>"; };
 		1194E93F2EACC652009C82D6 /* Color+AccentColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+AccentColor.swift"; sourceTree = "<group>"; };
@@ -538,6 +540,7 @@
 			isa = PBXGroup;
 			children = (
 				CB0200000000000000000008 /* ScreenshotStateViewModel.swift */,
+				CB0300000000000000000002 /* ScreenshotSelectionModel.swift */,
 				CB020000000000000000000E /* Models */,
 				CB020000000000000000000F /* Services */,
 				CB0200000000000000000010 /* Views */,
@@ -1059,6 +1062,7 @@
 				CB0200000000000000000004 /* ScreenshotSpacebarTapController.swift in Sources */,
 				CB0200000000000000000005 /* ScreenshotsView.swift in Sources */,
 				CB0200000000000000000006 /* ScreenshotWheelItemView.swift in Sources */,
+				CB0300000000000000000001 /* ScreenshotSelectionModel.swift in Sources */,
 				1132E5142E777B920068732D /* YouTubeMusicNetworking.swift in Sources */,
 				1132E5122E777B6E0068732D /* YouTubeMusicModels.swift in Sources */,
 				11CFC65F2E097F2F00748C80 /* OnboardingView.swift in Sources */,

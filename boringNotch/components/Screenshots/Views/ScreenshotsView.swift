@@ -6,13 +6,18 @@
 import SwiftUI
 
 /// Notch tab showing the ten most recent screenshots as a horizontally-snapping wheel.
-/// Select one (click, or scroll it to center), press Space for a Quick Look preview, or drag
-/// it straight out to wherever it's needed - the original is moved to the Trash the instant
-/// that drag is dropped, so there's nothing left to clean up afterwards.
+/// Click to select one, Cmd-click to select several, press Space for a Quick Look preview, or
+/// drag the selection straight out to wherever it's needed - the originals are moved to the
+/// Trash the instant that drag is dropped, so there's nothing left to clean up afterwards. The
+/// hover button on a cell deletes just that one screenshot on the spot, for a misclick.
 struct ScreenshotsView: View {
     @EnvironmentObject var vm: BoringViewModel
     @StateObject private var state = ScreenshotStateViewModel.shared
+    @StateObject private var selection = ScreenshotSelectionModel.shared
     @StateObject private var quickLookService = QuickLookService()
+
+    @State private var centeredID: String?
+    @State private var spacebarNeedsAccessibility = false
 
     var body: some View {
         panel
@@ -20,14 +25,15 @@ struct ScreenshotsView: View {
                 state.restoreAccessIfAvailable()
                 wireSpacebarPreview()
                 ScreenshotSpacebarTapController.shared.activate()
+                spacebarNeedsAccessibility = !ScreenshotSpacebarTapController.shared.isTapInstalled
             }
             .onDisappear {
                 ScreenshotSpacebarTapController.shared.deactivate()
                 // Nothing should stay "selected" once this tab isn't showing - it's the
                 // signal the spacebar tap uses to decide whether Space means anything.
-                state.selectedID = nil
+                selection.clear()
             }
-            .onChange(of: state.selectedID) { _, _ in
+            .onChange(of: selection.selectedIDs) { _, _ in
                 updateQuickLookSelection()
             }
             .quickLookPresenter(using: quickLookService)
@@ -75,17 +81,9 @@ struct ScreenshotsView: View {
                 .fontWeight(.medium)
                 .multilineTextAlignment(.center)
 
-            Button {
+            pillButton("Choose Folder…") {
                 _ = state.requestFolderAccess()
-            } label: {
-                Text("Choose Folder…")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 5)
-                    .background(Capsule().fill(Color.white.opacity(0.12)))
             }
-            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -109,7 +107,7 @@ struct ScreenshotsView: View {
         ScrollView(.horizontal) {
             HStack(spacing: 10) {
                 ForEach(state.items) { item in
-                    ScreenshotWheelItemView(item: item)
+                    ScreenshotWheelItemView(item: item, centeredID: $centeredID)
                         .id(item.id)
                 }
             }
@@ -117,27 +115,64 @@ struct ScreenshotsView: View {
         }
         .contentMargins(.horizontal, 60, for: .scrollContent)
         .scrollTargetBehavior(.viewAligned)
-        .scrollPosition(id: selectedIDBinding, anchor: .center)
+        .scrollPosition(id: $centeredID, anchor: .center)
         .scrollIndicators(.never)
     }
 
-    private var selectedIDBinding: Binding<String?> {
-        Binding(get: { state.selectedID }, set: { state.selectedID = $0 })
-    }
-
     private var infoBar: some View {
-        HStack {
-            if let item = state.selectedItem {
-                Text(item.captureDate.formatted(date: .abbreviated, time: .shortened))
-                Spacer(minLength: 8)
-                Text("\(item.fileSizeKB) KB")
-            } else {
-                Text("Select a screenshot, press Space to preview, or drag it out")
+        VStack(spacing: 4) {
+            HStack {
+                switch selectedItemsInOrder.count {
+                case 0:
+                    Text("Select a screenshot, press Space to preview, or drag it out")
+                case 1:
+                    let item = selectedItemsInOrder[0]
+                    Text(item.captureDate.formatted(date: .abbreviated, time: .shortened))
+                    Spacer(minLength: 8)
+                    Text("\(item.fileSizeKB) KB")
+                default:
+                    Text("\(selectedItemsInOrder.count) screenshots selected")
+                    Spacer(minLength: 8)
+                    Text("\(selectedItemsInOrder.reduce(0) { $0 + $1.fileSizeKB }) KB total")
+                }
+            }
+            .font(.system(size: 10))
+            .foregroundStyle(.gray)
+
+            if spacebarNeedsAccessibility {
+                HStack(spacing: 4) {
+                    Text("Space preview needs Accessibility")
+                    Button("Enable") {
+                        Task {
+                            _ = await XPCHelperClient.shared.ensureAccessibilityAuthorization(promptIfNeeded: true)
+                            ScreenshotSpacebarTapController.shared.retryInstall()
+                            spacebarNeedsAccessibility = !ScreenshotSpacebarTapController.shared.isTapInstalled
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.accentColor)
+                }
+                .font(.system(size: 9))
+                .foregroundStyle(.orange)
             }
         }
-        .font(.system(size: 10))
-        .foregroundStyle(.gray)
         .frame(maxWidth: .infinity)
+    }
+
+    private var selectedItemsInOrder: [ScreenshotItem] {
+        selection.selectedItems(in: state.items)
+    }
+
+    private func pillButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(Color.white.opacity(0.12)))
+        }
+        .buttonStyle(.plain)
     }
 
     /// Wires Space to toggle Quick Look for whatever's selected. The Screenshots view's own
@@ -155,25 +190,40 @@ struct ScreenshotsView: View {
         let quickLook = quickLookService
         let viewModel = vm
         ScreenshotSpacebarTapController.shared.onSpacebarPressed = {
-            guard let item = ScreenshotStateViewModel.shared.selectedItem else { return false }
+            let items = ScreenshotSelectionModel.shared.selectedItems(in: ScreenshotStateViewModel.shared.items)
+            guard !items.isEmpty else {
+                NSLog("🔵 ScreenshotsView: spacebar ignored - nothing selected")
+                return false
+            }
 
             if quickLook.isQuickLookOpen {
                 quickLook.hide()
                 return true
             }
 
-            guard Self.isMouseInsideOpenNotch(of: viewModel) else { return false }
+            let gate = Self.isMouseInsideOpenNotch(of: viewModel)
+            guard gate.result else {
+                NSLog("🔵 ScreenshotsView: spacebar ignored - \(gate.reason)")
+                return false
+            }
+
             // The screenshots folder's security scope is already held open for as long as
             // it's being watched - these child URLs don't need (and don't have) their own.
-            quickLook.show(urls: [item.url], selectFirst: true, requiresSecurityScope: false)
+            quickLook.show(urls: items.map(\.url), selectFirst: true, requiresSecurityScope: false)
             return true
         }
     }
 
-    private static func isMouseInsideOpenNotch(of vm: BoringViewModel) -> Bool {
-        guard vm.notchState == .open,
-              let uuid = vm.screenUUID,
-              let screen = NSScreen.screen(withUUID: uuid) else { return false }
+    private static func isMouseInsideOpenNotch(of vm: BoringViewModel) -> (result: Bool, reason: String) {
+        guard vm.notchState == .open else {
+            return (false, "notch isn't open")
+        }
+        // Fall back to the main screen if this window's own screenUUID hasn't been assigned
+        // yet - better to occasionally allow a preview from the wrong display than to silently
+        // never allow one because of a geometry lookup that came back empty.
+        guard let screen = vm.screenUUID.flatMap(NSScreen.screen(withUUID:)) ?? NSScreen.main else {
+            return (false, "no screen to test against")
+        }
 
         let screenFrame = screen.frame
         let notchRegion = CGRect(
@@ -182,11 +232,20 @@ struct ScreenshotsView: View {
             width: openNotchSize.width,
             height: openNotchSize.height
         )
-        return notchRegion.contains(NSEvent.mouseLocation)
+        let mouse = NSEvent.mouseLocation
+        guard notchRegion.contains(mouse) else {
+            return (false, "cursor at \(mouse) is outside the open-notch rect \(notchRegion)")
+        }
+        return (true, "ok")
     }
 
     private func updateQuickLookSelection() {
-        guard quickLookService.isQuickLookOpen, let item = state.selectedItem else { return }
-        quickLookService.updateSelection(urls: [item.url])
+        guard quickLookService.isQuickLookOpen else { return }
+        let urls = selectedItemsInOrder.map(\.url)
+        guard !urls.isEmpty else {
+            quickLookService.hide()
+            return
+        }
+        quickLookService.updateSelection(urls: urls)
     }
 }

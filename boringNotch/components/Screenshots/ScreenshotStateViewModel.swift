@@ -27,7 +27,6 @@ final class ScreenshotStateViewModel: ObservableObject {
     private static let stagedCopyMaxAge: TimeInterval = 60 * 60 * 24 // 1 day
 
     @Published private(set) var items: [ScreenshotItem] = []
-    @Published var selectedID: String?
     @Published private(set) var hasFolderAccess = false
 
     private var folderURL: URL?
@@ -37,11 +36,6 @@ final class ScreenshotStateViewModel: ObservableObject {
     private init() {}
 
     var isEmpty: Bool { items.isEmpty }
-
-    var selectedItem: ScreenshotItem? {
-        guard let selectedID else { return nil }
-        return items.first { $0.id == selectedID }
-    }
 
     // MARK: - Folder access
 
@@ -147,10 +141,7 @@ final class ScreenshotStateViewModel: ObservableObject {
 
         guard capped != items else { return }
         items = capped
-
-        if let selectedID, !capped.contains(where: { $0.id == selectedID }) {
-            self.selectedID = nil
-        }
+        ScreenshotSelectionModel.shared.pruneSelection(toExisting: capped)
     }
 
     private func isScreenCapture(_ url: URL) -> Bool {
@@ -209,7 +200,7 @@ final class ScreenshotStateViewModel: ObservableObject {
             }
         }
         items.removeAll { $0.id == item.id }
-        if selectedID == item.id { selectedID = nil }
+        ScreenshotSelectionModel.shared.deselect(item.id)
     }
 
     private func sweepStaleStagedCopies() {

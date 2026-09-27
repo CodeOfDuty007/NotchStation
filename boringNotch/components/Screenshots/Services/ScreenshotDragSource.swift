@@ -21,27 +21,47 @@ final class ScreenshotDragSource: NSObject, NSDraggingSource {
     /// can skip its usual "switch to Shelf" behavior for a drag that starts on our own tab.
     private(set) var isDragging = false
 
-    private var draggedItem: ScreenshotItem?
+    private var draggedItems: [ScreenshotItem] = []
 
+    /// Starts dragging `item` out - or, if `item` is part of a larger multi-selection, every
+    /// selected screenshot together (this is the "copy and paste multiple" path: Cmd-click a
+    /// few, then drag any one of them, exactly like the Shelf and Finder).
     func beginDrag(for item: ScreenshotItem, from view: NSView, event: NSEvent, previewImage: NSImage) {
         // Called from an NSView's mouseDragged override: always on the main thread in
         // practice, but that method isn't itself main-actor isolated, so ask explicitly
         // rather than requiring every caller up the chain to prove it.
-        guard let stagedURL = MainActor.assumeIsolated({ ScreenshotStateViewModel.shared.stagedCopyURL(for: item) }) else { return }
+        let itemsToDrag: [ScreenshotItem] = MainActor.assumeIsolated {
+            let selected = ScreenshotSelectionModel.shared.selectedItems(in: ScreenshotStateViewModel.shared.items)
+            if selected.count > 1, selected.contains(where: { $0.id == item.id }) {
+                return selected
+            }
+            return [item]
+        }
 
-        let pasteboardItem = NSPasteboardItem()
-        pasteboardItem.setString(stagedURL.absoluteString, forType: .fileURL)
-        pasteboardItem.setString(stagedURL.path, forType: .string)
+        var draggingItems: [NSDraggingItem] = []
+        for (index, dragItem) in itemsToDrag.enumerated() {
+            guard let stagedURL = MainActor.assumeIsolated({ ScreenshotStateViewModel.shared.stagedCopyURL(for: dragItem) }) else { continue }
 
-        let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
-        // Frame this at the cell's actual on-screen size, not the thumbnail's - QLThumbnailGenerator
-        // hands back an NSImage sized in pixels rather than points, which would otherwise make the
-        // drag image several times too large.
-        draggingItem.setDraggingFrame(NSRect(origin: .zero, size: view.bounds.size), contents: previewImage)
+            let pasteboardItem = NSPasteboardItem()
+            pasteboardItem.setString(stagedURL.absoluteString, forType: .fileURL)
+            pasteboardItem.setString(stagedURL.path, forType: .string)
 
-        draggedItem = item
+            let draggingItem = NSDraggingItem(pasteboardWriter: pasteboardItem)
+            // Frame this at the cell's actual on-screen size, not the thumbnail's -
+            // QLThumbnailGenerator hands back an NSImage sized in pixels rather than points,
+            // which would otherwise make the drag image several times too large. Fan multiple
+            // items out slightly so a multi-drag reads as a stack rather than one flat image.
+            let offset = CGFloat(index) * 6
+            let frame = NSRect(x: offset, y: -offset, width: view.bounds.width, height: view.bounds.height)
+            draggingItem.setDraggingFrame(frame, contents: previewImage)
+            draggingItems.append(draggingItem)
+        }
+
+        guard !draggingItems.isEmpty else { return }
+
+        draggedItems = itemsToDrag
         isDragging = true
-        view.beginDraggingSession(with: [draggingItem], event: event, source: self)
+        view.beginDraggingSession(with: draggingItems, event: event, source: self)
     }
 
     // MARK: - NSDraggingSource
@@ -63,10 +83,14 @@ final class ScreenshotDragSource: NSObject, NSDraggingSource {
 
     func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         isDragging = false
-        let item = draggedItem
-        draggedItem = nil
-        guard operation == .copy, let item else { return }
-        ScreenshotStateViewModel.shared.trashOriginal(of: item)
+        let items = draggedItems
+        draggedItems = []
+        guard operation == .copy, !items.isEmpty else { return }
+        MainActor.assumeIsolated {
+            for item in items {
+                ScreenshotStateViewModel.shared.trashOriginal(of: item)
+            }
+        }
     }
 
     func ignoreModifierKeys(for session: NSDraggingSession) -> Bool {

@@ -93,6 +93,11 @@ extension Defaults.Keys {
     //static let openLastTabByDefault = Key<Bool>("openLastTabByDefault", default: false)
     static let showOnLockScreen = Key<Bool>("showOnLockScreen", default: false)
     static let hideFromScreenRecording = Key<Bool>("hideFromScreenRecording", default: false)
+
+    // MARK: Screenshots
+    /// Security-scoped bookmark for the folder the user granted access to for the
+    /// Screenshots tray (defaults to their screen-capture save location, usually Desktop).
+    static let screenshotsFolderBookmark = Key<Data?>("screenshotsFolderBookmark", default: nil)
     
     // MARK: Appearance
     static let showEmojis = Key<Bool>("showEmojis", default: false)

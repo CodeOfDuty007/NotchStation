@@ -351,6 +351,8 @@ struct ContentView: View {
                         ShelfView()
                     case .clipboard:
                         ClipboardView()
+                    case .screenshots:
+                        ScreenshotsView()
                     }
                 }
                 .transition(

@@ -83,6 +83,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             screenUnlockedObserver = nil
         }
         MusicManager.shared.destroy()
+        ScreenshotStateViewModel.shared.stopAccessingFolderScope()
         cleanupDragDetectors()
         cleanupWindows()
         XPCHelperClient.shared.stopMonitoringAccessibilityAuthorization()
@@ -221,7 +222,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleDragEntersNotchRegion(onScreen screen: NSScreen) {
         guard let uuid = screen.displayUUID else { return }
-        
+
+        // Defensive: a drag out of the Screenshots wheel starts *inside* the notch region this
+        // watches. `DragDetector`'s monitors are unlikely to see it (they're global monitors,
+        // which don't fire for events already going to this app's own windows), but if they
+        // ever did, forcing the Shelf tab here would tear down the Screenshots view - and the
+        // drag source it was hosting - mid-drag. Cheap to guard against either way.
+        guard !ScreenshotDragSource.shared.isDragging else { return }
+
         if Defaults[.showOnAllDisplays], let viewModel = viewModels[uuid] {
             viewModel.open()
             coordinator.currentView = .shelf
@@ -284,6 +292,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Start pasteboard monitoring up front; otherwise nothing is captured
         // until the Clipboard tab is opened for the first time.
         _ = ClipboardStateViewModel.shared
+
+        // If the user already granted access to their screenshots folder in a previous
+        // session, resume watching it now instead of waiting for the tab to be opened.
+        ScreenshotStateViewModel.shared.restoreAccessIfAvailable()
 
         NotificationCenter.default.addObserver(
             self,

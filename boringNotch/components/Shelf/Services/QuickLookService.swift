@@ -22,20 +22,32 @@ final class QuickLookService: ObservableObject {
     private var dataSource: QuickLookDataSource?
     private var accessingURLs: [URL] = []
     private var previewPanelObserver: Any?
+    private var requiresSecurityScope = true
 
-    func show(urls: [URL], selectFirst: Bool = true, slideshow: Bool = false) {
+    /// - Parameter requiresSecurityScope: Pass `false` when the caller already guarantees the
+    ///   URLs are readable - e.g. children of a folder whose own security scope is held open
+    ///   for as long as it's being watched. A plain child URL has no bookmark of its own, so
+    ///   `startAccessingSecurityScopedResource()` on it returns `false`; gating on that would
+    ///   silently drop it from the preview instead of showing it.
+    func show(urls: [URL], selectFirst: Bool = true, slideshow: Bool = false, requiresSecurityScope: Bool = true) {
         guard !urls.isEmpty else { return }
         stopAccessingCurrentURLs()
-        accessingURLs = urls.filter { url in
-            if url.isFileURL {
-                return url.startAccessingSecurityScopedResource()
+        self.requiresSecurityScope = requiresSecurityScope
+        if requiresSecurityScope {
+            accessingURLs = urls.filter { url in
+                if url.isFileURL {
+                    return url.startAccessingSecurityScopedResource()
+                }
+                return true
             }
-            return true
+            self.urls = accessingURLs
+        } else {
+            accessingURLs = []
+            self.urls = urls
         }
-        self.urls = accessingURLs
         self.isQuickLookOpen = true
         if selectFirst {
-            self.selectedURL = accessingURLs.first
+            self.selectedURL = self.urls.first
         }
         // Observe the shared Quick Look preview panel closing so we can relinquish security scope
         let panel = QLPreviewPanel.shared()
@@ -67,6 +79,7 @@ final class QuickLookService: ObservableObject {
             url.stopAccessingSecurityScopedResource()
         }
         accessingURLs.removeAll()
+        requiresSecurityScope = true
         // If Quick Look panel was closed externally, also remove observer and clear reference
         if let panel = previewPanel {
             NotificationCenter.default.removeObserver(self, name: NSWindow.willCloseNotification, object: panel)
@@ -80,7 +93,7 @@ final class QuickLookService: ObservableObject {
 
     func updateSelection(urls: [URL]) {
         guard isQuickLookOpen else { return }
-    show(urls: urls, selectFirst: true)
+        show(urls: urls, selectFirst: true, requiresSecurityScope: requiresSecurityScope)
     }
 }
 

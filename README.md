@@ -90,9 +90,10 @@ This project is a **modified version of [Boring Notch](https://github.com/TheBor
 copyright © TheBoredTeam, licensed under the **GNU General Public License v3.0** (see [LICENSE](./LICENSE)).
 As required by GPL-3.0 §5(a), this notice records that modifications were made:
 
-> Modified by Nikhil Khurana, 2026: added a Clipboard History tab (auto-capture, launch-time monitoring)
-> and a Screenshots tray (multi-select, hover-delete, Space preview, drag-to-trash), plus supporting
-> project documentation. All other functionality is unchanged from upstream.
+> Modified by [@CodeOfDuty007](https://github.com/CodeOfDuty007), 2026: added a Clipboard History tab (auto-capture, launch-time monitoring)
+> and a Screenshots tray (multi-select, hover-delete, Space preview, drag-to-trash); disabled Sparkle's
+> automatic update checks and removed the upstream appcast feed URL, since this fork doesn't publish its
+> own releases; reworked repository docs and CI to fit a personal fork rather than the upstream project.
 
 This project remains licensed under GPL-3.0, same as upstream. All rights and obligations of that license
 apply to this repository and any further redistribution of it.

@@ -27,21 +27,12 @@ body:
       description: A clear and concise description of what you expected to happen.
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: version
     attributes:
-      label: Boring Notch Version
+      label: NotchStation Version / Commit
       description: >-
-        What version of our software are you running? (Go to ✦ in the menu bar >
-        Settings > About)
-      options:
-        - Select a version
-        - v2.7.3
-        - v2.7.2
-        - v2.7.1
-        - v2.7
-        - v2.7-rc.3
-        - v2.6
+        Which build are you running? If you built from source, include the commit hash.
     validations:
       required: true
   - type: input

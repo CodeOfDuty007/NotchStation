@@ -26,7 +26,7 @@ xcodebuild -project boringNotch.xcodeproj -scheme boringNotch -configuration deb
 
 ## Branching
 
-All code contributions target the `dev` branch (not `main`); `main` is for docs-only changes. See CONTRIBUTING.md.
+All code contributions target `main` directly. See CONTRIBUTING.md.
 
 ## Architecture
 

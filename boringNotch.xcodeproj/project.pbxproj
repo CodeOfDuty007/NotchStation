@@ -57,6 +57,7 @@
 		CB0200000000000000000001 /* ScreenshotItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0200000000000000000007 /* ScreenshotItem.swift */; };
 		CB0200000000000000000002 /* ScreenshotStateViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0200000000000000000008 /* ScreenshotStateViewModel.swift */; };
 		CB0200000000000000000003 /* ScreenshotDragSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0200000000000000000009 /* ScreenshotDragSource.swift */; };
+		CB0200000000000000000011 /* ScreenshotDragBatch.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0200000000000000000012 /* ScreenshotDragBatch.swift */; };
 		CB0200000000000000000004 /* ScreenshotSpacebarTapController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB020000000000000000000A /* ScreenshotSpacebarTapController.swift */; };
 		CB0200000000000000000005 /* ScreenshotsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB020000000000000000000B /* ScreenshotsView.swift */; };
 		CB0200000000000000000006 /* ScreenshotWheelItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB020000000000000000000C /* ScreenshotWheelItemView.swift */; };
@@ -235,6 +236,7 @@
 		CB0200000000000000000007 /* ScreenshotItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotItem.swift; sourceTree = "<group>"; };
 		CB0200000000000000000008 /* ScreenshotStateViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotStateViewModel.swift; sourceTree = "<group>"; };
 		CB0200000000000000000009 /* ScreenshotDragSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotDragSource.swift; sourceTree = "<group>"; };
+		CB0200000000000000000012 /* ScreenshotDragBatch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotDragBatch.swift; sourceTree = "<group>"; };
 		CB020000000000000000000A /* ScreenshotSpacebarTapController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotSpacebarTapController.swift; sourceTree = "<group>"; };
 		CB020000000000000000000B /* ScreenshotsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotsView.swift; sourceTree = "<group>"; };
 		CB020000000000000000000C /* ScreenshotWheelItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotWheelItemView.swift; sourceTree = "<group>"; };
@@ -560,6 +562,7 @@
 			isa = PBXGroup;
 			children = (
 				CB0200000000000000000009 /* ScreenshotDragSource.swift */,
+				CB0200000000000000000012 /* ScreenshotDragBatch.swift */,
 				CB020000000000000000000A /* ScreenshotSpacebarTapController.swift */,
 			);
 			path = Services;
@@ -1059,6 +1062,7 @@
 				CB0200000000000000000001 /* ScreenshotItem.swift in Sources */,
 				CB0200000000000000000002 /* ScreenshotStateViewModel.swift in Sources */,
 				CB0200000000000000000003 /* ScreenshotDragSource.swift in Sources */,
+				CB0200000000000000000011 /* ScreenshotDragBatch.swift in Sources */,
 				CB0200000000000000000004 /* ScreenshotSpacebarTapController.swift in Sources */,
 				CB0200000000000000000005 /* ScreenshotsView.swift in Sources */,
 				CB0200000000000000000006 /* ScreenshotWheelItemView.swift in Sources */,

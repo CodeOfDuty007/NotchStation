@@ -21,7 +21,7 @@ final class ScreenshotDragSource: NSObject, NSDraggingSource {
     /// can skip its usual "switch to Shelf" behavior for a drag that starts on our own tab.
     private(set) var isDragging = false
 
-    private var draggedItems: [ScreenshotItem] = []
+    private var draggedBatch: ScreenshotDragBatch<ScreenshotItem>?
 
     /// Starts dragging `item` out - or, if `item` is part of a larger multi-selection, every
     /// selected screenshot together (this is the "copy and paste multiple" path: Cmd-click a
@@ -38,9 +38,14 @@ final class ScreenshotDragSource: NSObject, NSDraggingSource {
             return [item]
         }
 
+        guard !isDragging else { return }
+        let batch = ScreenshotDragBatch(selected: itemsToDrag) { dragItem in
+            MainActor.assumeIsolated { ScreenshotStateViewModel.shared.stagedCopyURL(for: dragItem) }
+        }
+
         var draggingItems: [NSDraggingItem] = []
-        for (index, dragItem) in itemsToDrag.enumerated() {
-            guard let stagedURL = MainActor.assumeIsolated({ ScreenshotStateViewModel.shared.stagedCopyURL(for: dragItem) }) else { continue }
+        for (index, staged) in batch.stagedItems.enumerated() {
+            let stagedURL = staged.copyURL
 
             let pasteboardItem = NSPasteboardItem()
             pasteboardItem.setString(stagedURL.absoluteString, forType: .fileURL)
@@ -59,7 +64,7 @@ final class ScreenshotDragSource: NSObject, NSDraggingSource {
 
         guard !draggingItems.isEmpty else { return }
 
-        draggedItems = itemsToDrag
+        draggedBatch = batch
         isDragging = true
         view.beginDraggingSession(with: draggingItems, event: event, source: self)
     }
@@ -83,11 +88,14 @@ final class ScreenshotDragSource: NSObject, NSDraggingSource {
 
     func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
         isDragging = false
-        let items = draggedItems
-        draggedItems = []
-        guard operation == .copy, !items.isEmpty else { return }
+        let batch = draggedBatch
+        draggedBatch = nil
+        guard let batch else { return }
+        let originals = batch.originalsEligibleForTrash(didCopy: operation == .copy) {
+            FileManager.default.fileExists(atPath: $0.path)
+        }
         MainActor.assumeIsolated {
-            for item in items {
+            for item in originals {
                 ScreenshotStateViewModel.shared.trashOriginal(of: item)
             }
         }

@@ -183,9 +183,8 @@ final class ScreenshotStateViewModel: ObservableObject {
     /// completed (see `ScreenshotDragSource`) - never on click, selection, or preview.
     func trashOriginal(of item: ScreenshotItem) {
         // Guard against a "Replace" drop having put a different file at this path since we scanned it.
-        if let expected = item.fileIdentifier, Self.inode(at: item.url.path) != expected {
-            return
-        }
+        guard let expected = item.fileIdentifier,
+              Self.inode(at: item.url.path) == expected else { return }
         do {
             try FileManager.default.trashItem(at: item.url, resultingItemURL: nil)
         } catch {

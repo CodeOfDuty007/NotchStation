@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CB0400000000000000000009 /* PomodoroMiniBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000109 /* PomodoroMiniBar.swift */; };
 		CB0400000000000000000001 /* PomodoroTimeFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000101 /* PomodoroTimeFormat.swift */; };
 		CB0400000000000000000002 /* PomodoroManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000102 /* PomodoroManager.swift */; };
 		CB0400000000000000000003 /* AppDelegate+Pomodoro.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000103 /* AppDelegate+Pomodoro.swift */; };
@@ -199,6 +200,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		CB0400000000000000000109 /* PomodoroMiniBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroMiniBar.swift; sourceTree = "<group>"; };
 		CB0400000000000000000101 /* PomodoroTimeFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroTimeFormat.swift; sourceTree = "<group>"; };
 		CB0400000000000000000102 /* PomodoroManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroManager.swift; sourceTree = "<group>"; };
 		CB0400000000000000000103 /* AppDelegate+Pomodoro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Pomodoro.swift"; sourceTree = "<group>"; };
@@ -412,6 +414,7 @@
 				CB0400000000000000000106 /* PomodoroWaveView.swift */,
 				CB0400000000000000000107 /* PomodoroTimeEditor.swift */,
 				CB0400000000000000000108 /* PomodoroView.swift */,
+				CB0400000000000000000109 /* PomodoroMiniBar.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -1114,6 +1117,7 @@
 				CB0400000000000000000006 /* PomodoroWaveView.swift in Sources */,
 				CB0400000000000000000007 /* PomodoroTimeEditor.swift in Sources */,
 				CB0400000000000000000008 /* PomodoroView.swift in Sources */,
+				CB0400000000000000000009 /* PomodoroMiniBar.swift in Sources */,
 				CB0300000000000000000001 /* ScreenshotSelectionModel.swift in Sources */,
 				1132E5142E777B920068732D /* YouTubeMusicNetworking.swift in Sources */,
 				1132E5122E777B6E0068732D /* YouTubeMusicModels.swift in Sources */,

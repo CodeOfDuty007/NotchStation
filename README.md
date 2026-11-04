@@ -2,7 +2,7 @@
 
 **NotchStation** turns your MacBook's notch into a control hub: now-playing media with a visualizer,
 calendar/reminders, an AirDrop-capable file shelf, a webcam mirror, system HUD replacements — plus a
-**clipboard history tab** and a **screenshots tray**, added on top of the original app.
+**clipboard history tab**, a **screenshots tray**, and a **Pomodoro timer**, added on top of the original app.
 
 Built on and credited to **[Boring Notch](https://github.com/TheBoredTeam/boring.notch)** by
 [TheBoredTeam](https://github.com/TheBoredTeam). See [License & Attribution](#license--attribution) below —
@@ -13,7 +13,7 @@ this project is a GPL-3.0 modified version of their work, not an independent cre
 ## What's new here
 
 Boring Notch already covers now-playing media, calendar/reminders, the AirDrop shelf, webcam mirror, and
-HUD replacements. This fork adds two features on top of that:
+HUD replacements. This fork adds three features on top of that:
 
 ### 📋 Clipboard History
 
@@ -29,6 +29,30 @@ A recent-screenshots wheel built into the notch:
 - Tap Space for a quick preview
 - Drag a screenshot out of the tray and it's automatically trashed — clean up as you go, without a separate
   "delete" step
+
+### ⏱️ Pomodoro Timer
+
+A work/rest timer built into the notch, opened from the stopwatch button on the right of the notch header
+(next to the settings gear and battery, so it clears the physical notch).
+
+- **Two timers — work and rest.** Tap the **WORK** or **REST** label to choose which one is active; the
+  active one is highlighted in your accent color. Defaults are 25:00 work and 5:00 rest.
+- **Set the time your way.** Tap a time to edit it: scroll the minute/second wheels (mouse wheel, trackpad,
+  drag, or click a row) or just type it — `25` for minutes, or `25:30` for minutes and seconds. Wheels and
+  typed text stay in sync, and invalid input is rejected with a red outline.
+- **Mute / unmute button (bottom right).**
+  - *Unmuted:* when time is up, a macOS alert sound loops at full app volume until you dismiss it (your
+    Mac's system volume is never touched), and the notch opens once with a Dismiss button. A small
+    music-note menu next to the button picks the sound.
+  - *Muted:* no sound — instead the notch rapidly opens and closes, then stays open on a black screen
+    with accent-colored waves until you dismiss it.
+- **Countdown bar.** While a timer is running or paused, a small bar slides out of the left side of the
+  closed notch showing the time left (work or rest, whichever is active) with a thin progress line, so you
+  can check without opening the notch. Click it to jump to the Pomodoro tab.
+- **Keeps running in the background.** The timer counts down from a fixed end time, so it stays accurate
+  while the notch is closed, on another tab, or across sleep, and the alarm fires wherever you are.
+- Controls on the ring: play/pause, reset, and skip to the other phase. Durations, mute state, and the
+  chosen sound are remembered between launches.
 
 ## Everything from upstream
 
@@ -75,8 +99,10 @@ There's no CLI package manager or test runner for this project — Xcode is the 
 
 ## Usage
 
-- Launch the app — your notch now hosts the full tab set, including Clipboard and Screenshots.
+- Launch the app — your notch now hosts the full tab set, including Clipboard and Screenshots, plus the Pomodoro button in the header.
 - Hover over the notch to expand it and switch between tabs.
+- Click the stopwatch button in the notch header to start a Pomodoro; start it and close the notch to see
+  the countdown bar beside the notch.
 - Click the menu bar icon to customize behavior.
 
 ## Contributing
@@ -91,7 +117,8 @@ copyright © TheBoredTeam, licensed under the **GNU General Public License v3.0*
 As required by GPL-3.0 §5(a), this notice records that modifications were made:
 
 > Modified by [@CodeOfDuty007](https://github.com/CodeOfDuty007), 2026: added a Clipboard History tab (auto-capture, launch-time monitoring)
-> and a Screenshots tray (multi-select, hover-delete, Space preview, drag-to-trash); disabled Sparkle's
+> a Screenshots tray (multi-select, hover-delete, Space preview, drag-to-trash), and a Pomodoro timer tab
+> (work/rest timers, scroll-wheel and typed time entry, mute/visual alarm, closed-notch countdown bar); disabled Sparkle's
 > automatic update checks and removed the upstream appcast feed URL, since this fork doesn't publish its
 > own releases; reworked repository docs and CI to fit a personal fork rather than the upstream project.
 

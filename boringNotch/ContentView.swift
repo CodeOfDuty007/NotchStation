@@ -89,6 +89,19 @@ struct ContentView: View {
         }()
         
         ZStack(alignment: .top) {
+            // Drawn first so the notch itself covers the tucked-in end of the bar.
+            PomodoroMiniBarHost(
+                // Stay out of the way of anything that widens or covers the closed notch (inline HUDs,
+                // music/battery pop-ups): those draw over the bar's visible part.
+                isClosed: vm.notchState == .closed && !vm.hideOnClosed && !coordinator.helloAnimationRunning
+                    && !coordinator.sneakPeek.show && !coordinator.expandingView.show,
+                notchWidth: computedChinWidth,
+                notchHeight: vm.effectiveClosedNotchHeight,
+                onTap: {
+                    coordinator.currentView = .pomodoro
+                    doOpen()
+                }
+            )
             VStack(spacing: 0) {
                 let mainLayout = NotchLayout()
                     .frame(alignment: .top)

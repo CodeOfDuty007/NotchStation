@@ -99,6 +99,13 @@ extension Defaults.Keys {
     /// Screenshots tray (defaults to their screen-capture save location, usually Desktop).
     static let screenshotsFolderBookmark = Key<Data?>("screenshotsFolderBookmark", default: nil)
     
+    // MARK: Pomodoro
+    static let pomodoroWorkSeconds = Key<Int>("pomodoroWorkSeconds", default: 25 * 60)
+    static let pomodoroRestSeconds = Key<Int>("pomodoroRestSeconds", default: 5 * 60)
+    /// Muted = flash the notch on time-up instead of playing the looping alarm sound.
+    static let pomodoroMuted = Key<Bool>("pomodoroMuted", default: false)
+    static let pomodoroSoundName = Key<String>("pomodoroSoundName", default: "Hero")
+
     // MARK: Appearance
     static let showEmojis = Key<Bool>("showEmojis", default: false)
     //static let alwaysShowTabs = Key<Bool>("alwaysShowTabs", default: true)

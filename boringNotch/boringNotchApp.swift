@@ -297,6 +297,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // session, resume watching it now instead of waiting for the tab to be opened.
         ScreenshotStateViewModel.shared.restoreAccessIfAvailable()
 
+        setupPomodoroAlarmObserver()
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(screenConfigurationDidChange),

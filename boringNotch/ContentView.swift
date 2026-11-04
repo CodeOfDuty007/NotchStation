@@ -353,6 +353,8 @@ struct ContentView: View {
                         ClipboardView()
                     case .screenshots:
                         ScreenshotsView()
+                    case .pomodoro:
+                        PomodoroView()
                     }
                 }
                 .transition(

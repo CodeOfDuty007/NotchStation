@@ -109,6 +109,10 @@ class BoringNotchSkyLightWindow: NSPanel {
     
     private var observers: Set<AnyCancellable> = []
     
-    override var canBecomeKey: Bool { false }
+    /// Flipped on only while an in-notch text field (e.g. the Pomodoro time editor) needs keystrokes.
+    /// Counted (not a Bool) so one editor closing can't revoke another's access.
+    static var textEntryHolders = 0
+    static var allowsKeyForTextEntry: Bool { textEntryHolders > 0 }
+    override var canBecomeKey: Bool { Self.allowsKeyForTextEntry }
     override var canBecomeMain: Bool { false }
 }

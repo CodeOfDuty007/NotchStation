@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		CB0400000000000000000001 /* PomodoroTimeFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000101 /* PomodoroTimeFormat.swift */; };
+		CB0400000000000000000002 /* PomodoroManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000102 /* PomodoroManager.swift */; };
+		CB0400000000000000000003 /* AppDelegate+Pomodoro.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000103 /* AppDelegate+Pomodoro.swift */; };
+		CB0400000000000000000004 /* PomodoroIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000104 /* PomodoroIcon.swift */; };
+		CB0400000000000000000005 /* PomodoroTimeWheel.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000105 /* PomodoroTimeWheel.swift */; };
+		CB0400000000000000000006 /* PomodoroWaveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000106 /* PomodoroWaveView.swift */; };
+		CB0400000000000000000007 /* PomodoroTimeEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000107 /* PomodoroTimeEditor.swift */; };
+		CB0400000000000000000008 /* PomodoroView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0400000000000000000108 /* PomodoroView.swift */; };
 		1100290C2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */; };
 		110029272E84FD4C00035A57 /* TemporaryFileStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */; };
 		1100292A2E8691B400035A57 /* FileShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029292E8691B400035A57 /* FileShareView.swift */; };
@@ -191,6 +199,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		CB0400000000000000000101 /* PomodoroTimeFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroTimeFormat.swift; sourceTree = "<group>"; };
+		CB0400000000000000000102 /* PomodoroManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroManager.swift; sourceTree = "<group>"; };
+		CB0400000000000000000103 /* AppDelegate+Pomodoro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+Pomodoro.swift"; sourceTree = "<group>"; };
+		CB0400000000000000000104 /* PomodoroIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroIcon.swift; sourceTree = "<group>"; };
+		CB0400000000000000000105 /* PomodoroTimeWheel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroTimeWheel.swift; sourceTree = "<group>"; };
+		CB0400000000000000000106 /* PomodoroWaveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroWaveView.swift; sourceTree = "<group>"; };
+		CB0400000000000000000107 /* PomodoroTimeEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroTimeEditor.swift; sourceTree = "<group>"; };
+		CB0400000000000000000108 /* PomodoroView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroView.swift; sourceTree = "<group>"; };
 		1100290B2E847E2800035A57 /* NSItemProvider+LoadHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSItemProvider+LoadHelpers.swift"; sourceTree = "<group>"; };
 		110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryFileStorageService.swift; sourceTree = "<group>"; };
 		110029292E8691B400035A57 /* FileShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileShareView.swift; sourceTree = "<group>"; };
@@ -377,6 +393,29 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CB0400000000000000000020 /* Pomodoro */ = {
+			isa = PBXGroup;
+			children = (
+				CB0400000000000000000101 /* PomodoroTimeFormat.swift */,
+				CB0400000000000000000102 /* PomodoroManager.swift */,
+				CB0400000000000000000103 /* AppDelegate+Pomodoro.swift */,
+				CB0400000000000000000021 /* Views */,
+			);
+			path = Pomodoro;
+			sourceTree = "<group>";
+		};
+		CB0400000000000000000021 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				CB0400000000000000000104 /* PomodoroIcon.swift */,
+				CB0400000000000000000105 /* PomodoroTimeWheel.swift */,
+				CB0400000000000000000106 /* PomodoroWaveView.swift */,
+				CB0400000000000000000107 /* PomodoroTimeEditor.swift */,
+				CB0400000000000000000108 /* PomodoroView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		1113ABB82E80E27000EC13B2 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -512,6 +551,7 @@
 				9A987A042C73CA66005CA465 /* Shelf */,
 				CB01000000000000000000A1 /* Clipboard */,
 				CB020000000000000000000D /* Screenshots */,
+				CB0400000000000000000020 /* Pomodoro */,
 				149E0B982C737D26006418B1 /* Webcam */,
 				B18654312C6F45AE000B926A /* Live activities */,
 				B18654302C6F4590000B926A /* Settings */,
@@ -1066,6 +1106,14 @@
 				CB0200000000000000000004 /* ScreenshotSpacebarTapController.swift in Sources */,
 				CB0200000000000000000005 /* ScreenshotsView.swift in Sources */,
 				CB0200000000000000000006 /* ScreenshotWheelItemView.swift in Sources */,
+				CB0400000000000000000001 /* PomodoroTimeFormat.swift in Sources */,
+				CB0400000000000000000002 /* PomodoroManager.swift in Sources */,
+				CB0400000000000000000003 /* AppDelegate+Pomodoro.swift in Sources */,
+				CB0400000000000000000004 /* PomodoroIcon.swift in Sources */,
+				CB0400000000000000000005 /* PomodoroTimeWheel.swift in Sources */,
+				CB0400000000000000000006 /* PomodoroWaveView.swift in Sources */,
+				CB0400000000000000000007 /* PomodoroTimeEditor.swift in Sources */,
+				CB0400000000000000000008 /* PomodoroView.swift in Sources */,
 				CB0300000000000000000001 /* ScreenshotSelectionModel.swift in Sources */,
 				1132E5142E777B920068732D /* YouTubeMusicNetworking.swift in Sources */,
 				1132E5122E777B6E0068732D /* YouTubeMusicModels.swift in Sources */,

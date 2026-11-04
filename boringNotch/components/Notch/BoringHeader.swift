@@ -58,6 +58,23 @@ struct BoringHeader: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
+                        // Lives on the right (not in the tab bar) so it clears the physical notch.
+                        Button(action: {
+                            withAnimation(.smooth) {
+                                coordinator.currentView = .pomodoro
+                            }
+                        }) {
+                            Capsule()
+                                .fill(coordinator.currentView == .pomodoro ? Color(nsColor: .secondarySystemFill) : Color.black)
+                                .frame(width: 30, height: 30)
+                                .overlay {
+                                    PomodoroIcon()
+                                        .frame(width: 16, height: 16)
+                                        .foregroundStyle(coordinator.currentView == .pomodoro ? Color.white : Color.gray)
+                                }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .help("Pomodoro timer")
                         if Defaults[.settingsIconInNotch] {
                             Button(action: {
                                 DispatchQueue.main.async {

@@ -216,6 +216,10 @@ class BoringViewModel: NSObject, ObservableObject {
         } else if !coordinator.openLastTabByDefault {
             coordinator.currentView = .home
         }
+        // Keep the alarm's Dismiss control reachable if the notch is reopened mid-alarm.
+        if PomodoroManager.shared.isAlarming {
+            coordinator.currentView = .pomodoro
+        }
     }
 
     func closeHello() {

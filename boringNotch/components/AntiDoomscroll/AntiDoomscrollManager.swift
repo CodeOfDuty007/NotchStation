@@ -115,7 +115,6 @@ final class AntiDoomscrollManager: ObservableObject {
         let updated = Defaults[.antiDoomRules]
         for rule in updated where rule.isExhausted && matched.contains(rule.id) {
             if rule.kind == .url, let tab = frontTab {
-                if isBackedOff(tab) { continue }
                 enqueue(Enforcement(key: "tabs", target: .tab(tab)))
             } else if rule.kind == .app {
                 enqueue(Enforcement(key: "app:\(bundleID)",
@@ -203,39 +202,9 @@ final class AntiDoomscrollManager: ObservableObject {
     }
 
     private var outcomeRecorded = Set<String>()
-    /// Failure memory. Chromium tabs have a stable id, so only that exact tab is backed off for
-    /// 3 minutes. Safari tabs have no id, so a position-based key could hit a different tab;
-    /// instead three failures in a row pause that browser for 3 minutes.
-    private var failedTabUntil: [String: Date] = [:]
-    private var browserFailures: [String: Int] = [:]
-    private var browserBlockedUntil: [String: Date] = [:]
 
-    private func isBackedOff(_ t: DoomTab) -> Bool {
-        let now = Date()
-        if t.tabID != 0 {
-            return failedTabUntil["\(t.browser.bundleID):\(t.windowID):\(t.tabID)"].map { $0 > now } ?? false
-        }
-        return browserBlockedUntil[t.browser.bundleID].map { $0 > now } ?? false
-    }
-
-    private func recordFailure(_ t: DoomTab) {
-        let until = Date().addingTimeInterval(180)
-        if t.tabID != 0 {
-            failedTabUntil["\(t.browser.bundleID):\(t.windowID):\(t.tabID)"] = until
-        } else {
-            let n = (browserFailures[t.browser.bundleID] ?? 0) + 1
-            if n >= 3 { browserBlockedUntil[t.browser.bundleID] = until; browserFailures[t.browser.bundleID] = 0 }
-            else { browserFailures[t.browser.bundleID] = n }
-        }
-    }
-
-    private func recordSuccess(_ t: DoomTab) {
-        if t.tabID == 0 { browserFailures[t.browser.bundleID] = 0 }
-    }
-
-    /// Records what a real attempt achieved for an enforcement key: a failed app quit backs off
-    /// for 3 minutes so the duck can't hound the same app; successes and stale targets only
-    /// pause briefly. (Failed tab closes are tracked per tab by `recordFailure`.)
+    /// Records what a real attempt achieved. Failures back off for 3 minutes so the duck can't
+    /// peck the same page over and over; successes and stale targets only pause briefly.
     private func noteOutcome(_ key: String, closed: Bool, failed: Bool) {
         outcomeRecorded.insert(key)
         cooldown[key] = Date().addingTimeInterval(closed ? 2 : (failed ? 180 : 3))
@@ -248,14 +217,20 @@ final class AntiDoomscrollManager: ObservableObject {
         var counts: [String: Int] = [:]   // live tab count per window as tabs are closed
         var attempted = false
         var failed = false
+        var failedKeys = Set<String>()   // tabs the duck could not close: never re-targeted
     }
 
-    private static func tabKey(_ t: DoomTab) -> String { "\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)" }
+/// Identity used to remember a tab that failed to close. Chromium tabs have a stable id, so a
+    /// new tab never inherits another's failure and a moved tab is still recognised; Safari tabs
+    /// have none, so position + address is the best available.
+    private static func tabKey(_ t: DoomTab) -> String {
+        t.tabID != 0 ? "id:\(t.browser.bundleID):\(t.tabID)" : "pos:\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)"
+    }
 
     /// All tabs covered by a spent rule - foreground and background, every window of every running
     /// supported browser - ordered so the trigger tab goes first and, within a window, right to left
     /// (closing from the right keeps the remaining tabs' indices valid).
-    private func planSweep(trigger: DoomTab?) async -> [DoomTab] {
+    private func planSweep(trigger: DoomTab?, exclude: Set<String> = []) async -> [DoomTab] {
         let spent = Defaults[.antiDoomRules].filter { $0.kind == .url && $0.isExhausted }
         var found: [DoomTab] = []
         for browser in DoomBrowser.supported where browser.isRunning {
@@ -263,7 +238,7 @@ final class AntiDoomscrollManager: ObservableObject {
             case .success(let tabs):
                 deniedBrowsers.remove(browser.bundleID)
                 found += tabs.filter { tab in
-                    !isBackedOff(tab) && spent.contains { $0.matches(url: tab.url) }
+                    !exclude.contains(Self.tabKey(tab)) && spent.contains { $0.matches(url: tab.url) }
                 }
             case .failure(.denied): deniedBrowsers.insert(browser.bundleID)
             case .failure(.failed): break
@@ -298,34 +273,49 @@ final class AntiDoomscrollManager: ObservableObject {
             guard Defaults[.antiDoomEnabled] else { return }
 
             /// Builds the duck's next stop from the plan, skipping tabs whose rule is no longer spent.
-            func nextStop() -> DuckTrip? {
+            /// The window is re-read for every stop (tabs reflow as others close), its true frame is
+            /// taken from the window server, and the active tab's cross is re-measured from a screenshot.
+            func nextStop() async -> DuckTrip? {
                 while sweep.next < sweep.plan.count {
                     let tab = sweep.plan[sweep.next]
                     sweep.next += 1
                     let winKey = "\(tab.browser.bundleID):\(tab.windowID)"
-                    let count = sweep.counts[winKey] ?? tab.count
                     let target = Target.tab(tab)
-                    // Re-checked per stop: a failure earlier in this very outing may have tripped the back-off.
-                    guard Self.stillEnforceable(target), !self.isBackedOff(tab) else { continue }
-                    let r = DuckGeometry.cocoaRect(fromQuartz: tab.bounds, primaryHeight: primaryHeight)
+                    guard Self.stillEnforceable(target) else { continue }
+                    let pid = NSRunningApplication.runningApplications(withBundleIdentifier: tab.browser.bundleID).first?.processIdentifier ?? 0
+
+                    var count = sweep.counts[winKey] ?? tab.count
+                    var bounds = tab.bounds
+                    var activeIndex: Int?
+                    var title = ""
+                    if let live = await BrowserBridge.windowState(tab) { count = live.count; bounds = live.bounds; activeIndex = live.activeIndex; title = live.title }
+                    bounds = Self.trueBounds(pid: pid, like: bounds, title: title)
+                    guard Defaults[.antiDoomEnabled] else { return nil }
+
+                    let r = DuckGeometry.cocoaRect(fromQuartz: bounds, primaryHeight: primaryHeight)
                     guard let screen = DuckGeometry.screen(for: r) else { continue }
-                    let point = DuckGeometry.tabTarget(windowCocoa: r, isSafari: tab.browser.isSafari, index: tab.index, count: count)
+                    let fullScreen = DuckGeometry.isFullScreen(windowCocoa: r, screen: screen.frame)
+                    var anchor: (index: Int, closeX: CGFloat)?
+                    if !fullScreen, !tab.browser.isSafari, let active = activeIndex {
+                        let guess = DuckGeometry.tabTarget(windowCocoa: r, isSafari: false, index: active, count: count).x - r.minX
+                        if let snap = await DoomShot.snapshot(pid: pid, quartzBounds: bounds),
+                           let x = DoomTabProbe.activeCloseX(snap, estimated: guess) { anchor = (active, x) }
+                    }
+                    let point = DuckGeometry.tabTarget(windowCocoa: r, isSafari: tab.browser.isSafari, index: tab.index,
+                                                       count: count, anchor: anchor, fullScreen: fullScreen)
+                    DoomShot.log("trip \(tab.browser.name) win=\(tab.windowID) tab=\(tab.index)/\(count) scriptBounds=\(tab.bounds) trueBounds=\(bounds) fullScreen=\(fullScreen) measured=\(anchor != nil) target=\(point)")
                     return DuckTrip(target: point, facingLeft: false, screenFrame: screen.frame) {
-                        guard Self.stillEnforceable(target), !self.isBackedOff(tab) else { return false }
-                        let pid = NSRunningApplication.runningApplications(withBundleIdentifier: tab.browser.bundleID).first?.processIdentifier ?? 0
+                        guard Self.stillEnforceable(target) else { return false }
                         // Each tab is shot on its own: its window just before the close, and again after.
-                        let before = await DoomShot.capture(pid: pid, quartzBounds: tab.bounds, label: "before")
+                        let before = await DoomShot.capture(pid: pid, quartzBounds: bounds, label: "before")
                         let result = await BrowserBridge.close(tab)
                         try? await Task.sleep(for: .milliseconds(450))
-                        let after = await DoomShot.capture(pid: pid, quartzBounds: tab.bounds, label: "after")
+                        let after = await DoomShot.capture(pid: pid, quartzBounds: bounds, label: "after")
                         DoomShot.log("close \(tab.browser.name) win=\(tab.windowID) tab=\(tab.index)/\(count) url=\(tab.url) -> \(result.detail) before=\(before?.lastPathComponent ?? "-") after=\(after?.lastPathComponent ?? "-")")
                         // "gate:" = never dispatched (interrupted); "gone:" = target changed (stale).
                         if !result.detail.hasPrefix("gate:") { sweep.attempted = true }
                         if !result.closed, !result.detail.hasPrefix("gate:"), !result.detail.hasPrefix("gone:") { sweep.failed = true }
-                        if !result.closed, !result.detail.hasPrefix("gate:"), !result.detail.hasPrefix("gone:") {
-                            self.recordFailure(tab)
-                        }
-                        if result.closed { self.recordSuccess(tab) }
+                        if !result.closed { sweep.failedKeys.insert(Self.tabKey(tab)) }
                         if result.closed { sweep.counts[winKey] = count - 1 }
                         return result.closed
                     }
@@ -336,17 +326,17 @@ final class AntiDoomscrollManager: ObservableObject {
             /// The next planned tab; once the plan is used up, rescan so tabs opened while the duck
             /// was working (or walking home) are picked up immediately.
             func nextOrRescan() async -> DuckTrip? {
-                if let stop = nextStop() { return stop }
+                if let stop = await nextStop() { return stop }
                 guard Defaults[.antiDoomEnabled] else { return nil }
-                let fresh = await planSweep(trigger: nil)
+                let fresh = await planSweep(trigger: nil, exclude: sweep.failedKeys)
                 guard !fresh.isEmpty, Defaults[.antiDoomEnabled] else { return nil }
                 sweep.plan = fresh; sweep.next = 0; sweep.counts = [:]
-                return nextStop()
+                return await nextStop()
             }
 
-            guard Defaults[.antiDoomEnabled], let first = nextStop() else { return }
+            guard Defaults[.antiDoomEnabled], let first = await nextStop() else { return }
             await DuckController.shared.run(first, next: { await nextOrRescan() })
-            if sweep.attempted { noteOutcome(e.key, closed: true, failed: false) }   // per-tab failures are remembered separately
+            if sweep.attempted { noteOutcome(e.key, closed: !sweep.failed, failed: sweep.failed) }
 
         case .app(let pid, let bundleID, let window):
             // No qualifying window: fall back to the primary screen's top-left corner.
@@ -364,6 +354,33 @@ final class AntiDoomscrollManager: ObservableObject {
             guard Defaults[.antiDoomEnabled] else { return }
             await DuckController.shared.run(trip)
         }
+    }
+
+    /// A browser's scripted window bounds can be wrong at the top edge (seen with a display arranged
+    /// above the primary one: the top was reported 122pt too low), so the real frame is taken from
+    /// the window server, matching on left edge, bottom edge and width, which stay correct.
+    private static func trueBounds(pid: pid_t, like b: CGRect, title: String) -> CGRect {
+        guard pid != 0, let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return b }
+        var candidates: [(rect: CGRect, name: String)] = []
+        for w in info {
+            guard (w[kCGWindowOwnerPID as String] as? pid_t) == pid, (w[kCGWindowLayer as String] as? Int) == 0,
+                  let d = w[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
+            let r = CGRect(x: d["X"] ?? 0, y: d["Y"] ?? 0, width: d["Width"] ?? 0, height: d["Height"] ?? 0)
+            if abs(r.minX - b.minX) <= 3, abs(r.maxY - b.maxY) <= 3, abs(r.width - b.width) <= 3 {
+                candidates.append((r, (w[kCGWindowName as String] as? String) ?? ""))
+            }
+        }
+        // Stacked windows can share left/bottom/width. The window's title identifies it: narrow the
+        // matches to those whose window-server name matches the scripted title, then (only if that
+        // still leaves several) take the one whose top and height are closest to the reported ones.
+        var pool = candidates
+        if !title.isEmpty {
+            let named = candidates.filter { !$0.name.isEmpty && ($0.name == title || $0.name.hasPrefix(title) || title.hasPrefix($0.name)) }
+            if !named.isEmpty { pool = named }
+        }
+        guard let best = pool.min(by: { abs($0.rect.minY - b.minY) + abs($0.rect.height - b.height) < abs($1.rect.minY - b.minY) + abs($1.rect.height - b.height) }) else { return b }
+        if pool.count > 1 { DoomShot.log("trueBounds ambiguous: \(pool.count) windows match \(b) title=\(title); using \(best.rect)") }
+        return best.rect
     }
 
     /// Asks the app to quit politely (never force-quits, so unsaved work gets its save prompt).

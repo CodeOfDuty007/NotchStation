@@ -35,7 +35,8 @@ enum DuckGeometry {
     /// (Chromium browsers: tabs share the strip between the traffic lights and the new-tab
     /// button, close button at the tab's right; Safari: tabs share the full width, close
     /// button at the tab's left). The close itself is done by scripting, not by this point.
-    static func tabTarget(windowCocoa r: CGRect, isSafari: Bool, index: Int, count: Int) -> CGPoint {
+    static func tabTarget(windowCocoa r: CGRect, isSafari: Bool, index: Int, count: Int,
+                          anchor: (index: Int, closeX: CGFloat)? = nil, fullScreen: Bool = false) -> CGPoint {
         let n = CGFloat(max(count, 1)), i = CGFloat(min(max(index, 1), max(count, 1)))
         if isSafari {
             let w = r.width / n
@@ -45,8 +46,19 @@ enum DuckGeometry {
         // up to 240pt wide with a 2pt overlap, and the cross sits 19pt from a tab's right edge.
         let left: CGFloat = 100, right: CGFloat = 90, overlap: CGFloat = 2
         let tabW = min(240, max(60, (r.width - left - right) / n + overlap))
-        let x = r.minX + left + (i - 1) * (tabW - overlap) + tabW - 19
-        return CGPoint(x: min(x, r.maxX - 90), y: r.maxY - 20)
+        let pitch = tabW - overlap
+        var x = r.minX + left + (i - 1) * pitch + tabW - 19
+        // A measured position of the active tab's cross (read from a screenshot) beats the
+        // estimate; other tabs are placed relative to it.
+        if let anchor { x = r.minX + anchor.closeX + (i - CGFloat(anchor.index)) * pitch }
+        x = min(x, r.maxX - 90)
+        // Full screen hides the tab strip until the pointer reaches the top edge: aim there.
+        return CGPoint(x: x, y: fullScreen ? r.maxY - 6 : r.maxY - 20)
+    }
+
+    /// Whether a window covers its whole screen including the menu bar (native full screen).
+    static func isFullScreen(windowCocoa r: CGRect, screen: CGRect) -> Bool {
+        abs(r.width - screen.width) < 2 && abs(r.height - screen.height) < 2
     }
 
     /// The red close dot of a standard macOS window.

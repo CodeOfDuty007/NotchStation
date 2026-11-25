@@ -97,11 +97,8 @@ you overspend, a small duck walks out onto your desktop and closes the offending
 - The **master slider is the only off switch.** Off means nothing is read, nothing is closed, and any duck in
   flight is sent home. There is no per-rule pause or reset button.
 - Browsers are never launched by the app: scripts only run against a browser that is already open. The tab's
-  address (and, in Chromium browsers, its stable tab id) is re-verified right before every close, so a
-  different tab is never closed in its place.
-- A tab that fails to close is skipped for 3 minutes instead of being retried in a loop. In Safari, whose tabs
-  have no id, three failures in a row pause Safari for 3 minutes. New matching tabs are otherwise still
-  closed immediately.
+  address is re-verified right before every close, so a different page is never closed in its place.
+- After a failed close the duck backs off for 3 minutes instead of retrying in a loop.
 - Each close is logged to `DoomLog/log.txt` in the app's Application Support folder (outcome and, if it
   failed, the exact reason), with a screenshot of just that browser window before and after.
 
@@ -111,9 +108,11 @@ app.
 
 **Known limits**
 
-- The beak's aim at the close button is an estimate: browsers don't expose tab geometry, so it is computed
-  from the window frame, the tab count and the active tab's index (calibrated on Chrome; Arc's sidebar tabs
-  and heavily squeezed tab strips will be off). The tab itself is closed by scripting, not by the click.
+- Browsers don't expose tab geometry, so the beak's aim at the close button is worked out from a screenshot
+  of the window (it finds where the active tab ends) and falls back to an estimate from the window frame and
+  tab count when Screen Recording is off. Native full screen hides the tab strip, so there the duck pecks the
+  top edge where the strip appears. Arc's sidebar tabs and Safari are estimates. The tab itself is always
+  closed by scripting, not by the click.
 - Moving the browser window to another display mid-trip leaves the duck at the old spot.
 - Quitting an app from an app rule inside the macOS sandbox has not been verified; it falls back to hiding.
 

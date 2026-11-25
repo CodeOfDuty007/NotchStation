@@ -216,6 +216,10 @@ final class AntiDoomscrollManager: ObservableObject {
         var next = 0
         var counts: [String: Int] = [:]   // live tab count per window as tabs are closed
         var attempted = false
+        /// Measured close-button X (window-relative points) of the trigger tab, when it could be read.
+        var anchorWindow: String?
+        var anchorIndex = 0
+        var anchorCloseX: CGFloat?
         var failed = false
     }
 
@@ -266,6 +270,21 @@ final class AntiDoomscrollManager: ObservableObject {
             sweep.plan = await planSweep(trigger: trigger)
             guard Defaults[.antiDoomEnabled] else { return }
 
+            // Measure where the active (trigger) tab's cross really is from a screenshot of its
+            // window; skipped for Safari, full-screen windows and when Screen Recording is off.
+            let trigR = DuckGeometry.cocoaRect(fromQuartz: trigger.bounds, primaryHeight: primaryHeight)
+            if !trigger.browser.isSafari, let trigScreen = DuckGeometry.screen(for: trigR),
+               !DuckGeometry.isFullScreen(windowCocoa: trigR, screen: trigScreen.frame) {
+                let pid = NSRunningApplication.runningApplications(withBundleIdentifier: trigger.browser.bundleID).first?.processIdentifier ?? 0
+                let guess = DuckGeometry.tabTarget(windowCocoa: trigR, isSafari: false, index: trigger.index, count: trigger.count).x - trigR.minX
+                if let snap = await DoomShot.snapshot(pid: pid, quartzBounds: trigger.bounds),
+                   let x = DoomTabProbe.activeCloseX(snap, estimated: guess) {
+                    sweep.anchorWindow = "\(trigger.browser.bundleID):\(trigger.windowID)"
+                    sweep.anchorIndex = trigger.index
+                    sweep.anchorCloseX = x
+                }
+            }
+
             /// Builds the duck's next stop from the plan, skipping tabs whose rule is no longer spent.
             func nextStop() -> DuckTrip? {
                 while sweep.next < sweep.plan.count {
@@ -277,7 +296,12 @@ final class AntiDoomscrollManager: ObservableObject {
                     guard Self.stillEnforceable(target) else { continue }
                     let r = DuckGeometry.cocoaRect(fromQuartz: tab.bounds, primaryHeight: primaryHeight)
                     guard let screen = DuckGeometry.screen(for: r) else { continue }
-                    let point = DuckGeometry.tabTarget(windowCocoa: r, isSafari: tab.browser.isSafari, index: tab.index, count: count)
+                    let fullScreen = DuckGeometry.isFullScreen(windowCocoa: r, screen: screen.frame)
+                    var anchor: (index: Int, closeX: CGFloat)?
+                    if !fullScreen, sweep.anchorWindow == winKey, let x = sweep.anchorCloseX { anchor = (sweep.anchorIndex, x) }
+                    let point = DuckGeometry.tabTarget(windowCocoa: r, isSafari: tab.browser.isSafari, index: tab.index,
+                                                       count: count, anchor: anchor, fullScreen: fullScreen)
+                    DoomShot.log("trip \(tab.browser.name) win=\(tab.windowID) tab=\(tab.index)/\(count) bounds=\(tab.bounds) fullScreen=\(fullScreen) measured=\(anchor != nil) target=\(point)")
                     return DuckTrip(target: point, facingLeft: false, screenFrame: screen.frame) {
                         guard Self.stillEnforceable(target) else { return false }
                         let pid = NSRunningApplication.runningApplications(withBundleIdentifier: tab.browser.bundleID).first?.processIdentifier ?? 0

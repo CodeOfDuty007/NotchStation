@@ -108,9 +108,11 @@ app.
 
 **Known limits**
 
-- The beak's aim at the close button is an estimate: browsers don't expose tab geometry, so it is computed
-  from the window frame, the tab count and the active tab's index (calibrated on Chrome; Arc's sidebar tabs
-  and heavily squeezed tab strips will be off). The tab itself is closed by scripting, not by the click.
+- Browsers don't expose tab geometry, so the beak's aim at the close button is worked out from a screenshot
+  of the window (it finds where the active tab ends) and falls back to an estimate from the window frame and
+  tab count when Screen Recording is off. Native full screen hides the tab strip, so there the duck pecks the
+  top edge where the strip appears. Arc's sidebar tabs and Safari are estimates. The tab itself is always
+  closed by scripting, not by the click.
 - Moving the browser window to another display mid-trip leaves the duck at the old spot.
 - Quitting an app from an app rule inside the macOS sandbox has not been verified; it falls back to hiding.
 

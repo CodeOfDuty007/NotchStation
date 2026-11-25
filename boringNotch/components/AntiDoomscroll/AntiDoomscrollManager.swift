@@ -224,7 +224,7 @@ final class AntiDoomscrollManager: ObservableObject {
     /// new tab never inherits another's failure and a moved tab is still recognised; Safari tabs
     /// have none, so position + address is the best available.
     private static func tabKey(_ t: DoomTab) -> String {
-        t.tabID != 0 ? "id:\(t.browser.bundleID):\(t.windowID):\(t.tabID)" : "pos:\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)"
+        t.tabID != 0 ? "id:\(t.browser.bundleID):\(t.tabID)" : "pos:\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)"
     }
 
     /// All tabs covered by a spent rule - foreground and background, every window of every running

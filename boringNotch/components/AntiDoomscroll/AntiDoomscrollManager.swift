@@ -203,12 +203,10 @@ final class AntiDoomscrollManager: ObservableObject {
     }
 
     private var outcomeRecorded = Set<String>()
-    /// Tabs a close attempt failed on, with when the duck may try again.
+    /// Tabs (window + address) a close attempt failed on, with when the duck may try again.
     /// Scoped to the tab so one stubborn tab never blocks enforcement on new ones.
     private var failedTabUntil: [String: Date] = [:]
-    /// Identifies one specific tab (browser + window + position + address), so a new tab that happens
-    /// to share the address - even in the same window - is never covered by another tab's back-off.
-    private static func failKey(_ t: DoomTab) -> String { "\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)" }
+    private static func failKey(_ t: DoomTab) -> String { "\(t.browser.bundleID):\(t.windowID):\(t.url)" }
     private func activeFailedKeys() -> Set<String> {
         let now = Date()
         failedTabUntil = failedTabUntil.filter { $0.value > now }

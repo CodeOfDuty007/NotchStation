@@ -113,7 +113,7 @@ enum BrowserBridge {
     }
 
     /// Live state of one window: its scripted bounds, tab count and active tab index.
-    static func windowState(_ tab: DoomTab) async -> (bounds: CGRect, count: Int, activeIndex: Int)? {
+    static func windowState(_ tab: DoomTab) async -> (bounds: CGRect, count: Int, activeIndex: Int, title: String)? {
         guard Defaults[.antiDoomEnabled], tab.browser.isRunning else { return nil }
         let script = """
         if application id "\(tab.browser.bundleID)" is not running then return {}
@@ -123,13 +123,13 @@ enum BrowserBridge {
             on error
                 return {}
             end try
-            return {bounds of w, count of tabs of w, \(tab.browser.activeIndexExpression)}
+            return {bounds of w, count of tabs of w, \(tab.browser.activeIndexExpression), \(tab.browser.isSafari ? "name" : "title") of w}
         end tell
         """
-        guard let d = try? await AppleScriptHelper.execute(script), d.numberOfItems == 3,
+        guard let d = try? await AppleScriptHelper.execute(script), d.numberOfItems == 4,
               let r = rect(from: d.atIndex(1)), let n = d.atIndex(2)?.int32Value,
               let i = d.atIndex(3)?.int32Value else { return nil }
-        return (r, Int(n), Int(i))
+        return (r, Int(n), Int(i), d.atIndex(4)?.stringValue ?? "")
     }
 
     /// Closes one tab (foreground or background): the one at the observed index if it still has

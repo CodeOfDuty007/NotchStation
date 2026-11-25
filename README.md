@@ -86,7 +86,7 @@ you overspend, a small duck walks out onto your desktop and closes the offending
   strip to the active tab's close button, extends its beak and pecks - and the tab closes.
 - It closes **every** tab covered by a spent rule in a single outing - foreground and background, in every
   window of every supported browser that is running - visiting each in turn, and docks only when none are
-  left.
+  left. Tabs you open while it is walking home make it U-turn at once instead of docking first.
 - It works across external displays and always returns to the Mac's built-in (notch) screen, walking slowly
   to the notch and fading away.
 - App rules work the same way: the duck pecks the window's red close dot and asks the app to quit

@@ -217,6 +217,7 @@ final class AntiDoomscrollManager: ObservableObject {
         var counts: [String: Int] = [:]   // live tab count per window as tabs are closed
         var attempted = false
         var failed = false
+        var failedKeys = Set<String>()   // tabs the duck could not close: never re-targeted
     }
 
     private static func tabKey(_ t: DoomTab) -> String { "\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)" }
@@ -224,7 +225,7 @@ final class AntiDoomscrollManager: ObservableObject {
     /// All tabs covered by a spent rule - foreground and background, every window of every running
     /// supported browser - ordered so the trigger tab goes first and, within a window, right to left
     /// (closing from the right keeps the remaining tabs' indices valid).
-    private func planSweep(trigger: DoomTab?) async -> [DoomTab] {
+    private func planSweep(trigger: DoomTab?, exclude: Set<String> = []) async -> [DoomTab] {
         let spent = Defaults[.antiDoomRules].filter { $0.kind == .url && $0.isExhausted }
         var found: [DoomTab] = []
         for browser in DoomBrowser.supported where browser.isRunning {
@@ -232,7 +233,7 @@ final class AntiDoomscrollManager: ObservableObject {
             case .success(let tabs):
                 deniedBrowsers.remove(browser.bundleID)
                 found += tabs.filter { tab in
-                    spent.contains { $0.matches(url: tab.url) }
+                    !exclude.contains(Self.tabKey(tab)) && spent.contains { $0.matches(url: tab.url) }
                 }
             case .failure(.denied): deniedBrowsers.insert(browser.bundleID)
             case .failure(.failed): break
@@ -281,8 +282,9 @@ final class AntiDoomscrollManager: ObservableObject {
                     var count = sweep.counts[winKey] ?? tab.count
                     var bounds = tab.bounds
                     var activeIndex: Int?
-                    if let live = await BrowserBridge.windowState(tab) { count = live.count; bounds = live.bounds; activeIndex = live.activeIndex }
-                    bounds = Self.trueBounds(pid: pid, like: bounds)
+                    var title = ""
+                    if let live = await BrowserBridge.windowState(tab) { count = live.count; bounds = live.bounds; activeIndex = live.activeIndex; title = live.title }
+                    bounds = Self.trueBounds(pid: pid, like: bounds, title: title)
                     guard Defaults[.antiDoomEnabled] else { return nil }
 
                     let r = DuckGeometry.cocoaRect(fromQuartz: bounds, primaryHeight: primaryHeight)
@@ -308,6 +310,7 @@ final class AntiDoomscrollManager: ObservableObject {
                         // "gate:" = never dispatched (interrupted); "gone:" = target changed (stale).
                         if !result.detail.hasPrefix("gate:") { sweep.attempted = true }
                         if !result.closed, !result.detail.hasPrefix("gate:"), !result.detail.hasPrefix("gone:") { sweep.failed = true }
+                        if !result.closed { sweep.failedKeys.insert(Self.tabKey(tab)) }
                         if result.closed { sweep.counts[winKey] = count - 1 }
                         return result.closed
                     }
@@ -315,8 +318,19 @@ final class AntiDoomscrollManager: ObservableObject {
                 return nil
             }
 
+            /// The next planned tab; once the plan is used up, rescan so tabs opened while the duck
+            /// was working (or walking home) are picked up immediately.
+            func nextOrRescan() async -> DuckTrip? {
+                if let stop = await nextStop() { return stop }
+                guard Defaults[.antiDoomEnabled] else { return nil }
+                let fresh = await planSweep(trigger: nil, exclude: sweep.failedKeys)
+                guard !fresh.isEmpty, Defaults[.antiDoomEnabled] else { return nil }
+                sweep.plan = fresh; sweep.next = 0; sweep.counts = [:]
+                return await nextStop()
+            }
+
             guard Defaults[.antiDoomEnabled], let first = await nextStop() else { return }
-            await DuckController.shared.run(first, next: { await nextStop() })
+            await DuckController.shared.run(first, next: { await nextOrRescan() })
             if sweep.attempted { noteOutcome(e.key, closed: !sweep.failed, failed: sweep.failed) }
 
         case .app(let pid, let bundleID, let window):
@@ -340,20 +354,28 @@ final class AntiDoomscrollManager: ObservableObject {
     /// A browser's scripted window bounds can be wrong at the top edge (seen with a display arranged
     /// above the primary one: the top was reported 122pt too low), so the real frame is taken from
     /// the window server, matching on left edge, bottom edge and width, which stay correct.
-    private static func trueBounds(pid: pid_t, like b: CGRect) -> CGRect {
+    private static func trueBounds(pid: pid_t, like b: CGRect, title: String) -> CGRect {
         guard pid != 0, let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return b }
-        var candidates: [CGRect] = []
+        var candidates: [(rect: CGRect, name: String)] = []
         for w in info {
             guard (w[kCGWindowOwnerPID as String] as? pid_t) == pid, (w[kCGWindowLayer as String] as? Int) == 0,
                   let d = w[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
             let r = CGRect(x: d["X"] ?? 0, y: d["Y"] ?? 0, width: d["Width"] ?? 0, height: d["Height"] ?? 0)
-            if abs(r.minX - b.minX) <= 3, abs(r.maxY - b.maxY) <= 3, abs(r.width - b.width) <= 3 { candidates.append(r) }
+            if abs(r.minX - b.minX) <= 3, abs(r.maxY - b.maxY) <= 3, abs(r.width - b.width) <= 3 {
+                candidates.append((r, (w[kCGWindowName as String] as? String) ?? ""))
+            }
         }
-        // Several windows can share left/bottom/width (stacked windows): take the one whose top and
-        // height are closest to what the browser reported, and log the ambiguity.
-        guard let best = candidates.min(by: { abs($0.minY - b.minY) + abs($0.height - b.height) < abs($1.minY - b.minY) + abs($1.height - b.height) }) else { return b }
-        if candidates.count > 1 { DoomShot.log("trueBounds ambiguous: \(candidates.count) windows match \(b); using \(best)") }
-        return best
+        // Stacked windows can share left/bottom/width. The window's title identifies it: narrow the
+        // matches to those whose window-server name matches the scripted title, then (only if that
+        // still leaves several) take the one whose top and height are closest to the reported ones.
+        var pool = candidates
+        if !title.isEmpty {
+            let named = candidates.filter { !$0.name.isEmpty && ($0.name == title || $0.name.hasPrefix(title) || title.hasPrefix($0.name)) }
+            if !named.isEmpty { pool = named }
+        }
+        guard let best = pool.min(by: { abs($0.rect.minY - b.minY) + abs($0.rect.height - b.height) < abs($1.rect.minY - b.minY) + abs($1.rect.height - b.height) }) else { return b }
+        if pool.count > 1 { DoomShot.log("trueBounds ambiguous: \(pool.count) windows match \(b) title=\(title); using \(best.rect)") }
+        return best.rect
     }
 
     /// Asks the app to quit politely (never force-quits, so unsaved work gets its save prompt).

@@ -85,6 +85,8 @@ final class DuckController {
     private var aborted = false
     private var parkedScreen: CGRect?
     private(set) var isRunning = false
+    /// Set while walking home when a new target appears: every animation step then ends at once.
+    private var uturn = false
 
     private let s = DuckController.scale
     private var spriteSize: CGSize { CGSize(width: DuckSpriteView.canvas.width * s, height: DuckSpriteView.canvas.height * s) }
@@ -112,6 +114,9 @@ final class DuckController {
 
         var stop = first
         var last: (x: CGFloat, y: CGFloat, screen: CGRect)?
+        outer: while true {
+        uturn = false
+        model.opacity = 1; model.scale = 1
         while true {
             let screen = stop.screenFrame
             let dir: CGFloat = stop.facingLeft ? -1 : 1
@@ -177,26 +182,32 @@ final class DuckController {
         }
         guard !aborted, let end = last else { return }
 
-        // Back home - only now that nothing is left to close. On the built-in screen: walk to
-        // the notch. On an external screen: walk slowly off the edge toward the built-in display,
-        // come in from the matching edge there and carry on to the notch.
-        let homeFrame = Self.homeScreenFrame() ?? end.screen
-        if homeFrame == end.screen {
-            await walkHome(panel, screen: end.screen, from: end.x, y: end.y)
-        } else {
-            let exitDir: CGFloat = homeFrame.midX < end.screen.midX ? -1 : 1
-            let exitX = exitDir < 0 ? end.screen.minX - spriteSize.width : end.screen.maxX
-            model.facingLeft = exitDir < 0
-            let dist = abs(exitX - end.x)
-            await tween(max(0.5, Double(dist) / 55)) { t in
-                self.place(panel, x: end.x + (exitX - end.x) * t, y: end.y)
-                self.model.footPhase = Int(Double(dist) * t / 5) % 2
+        // Back home - only once nothing is left to close. While walking, keep asking for newly
+        // opened matching tabs: if any appear, U-turn on the spot instead of docking first.
+        var pending: DuckTrip?
+        let poller = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(800))
+                if Task.isCancelled || self.aborted { break }
+                if let n = await next() { pending = n; self.uturn = true; break }
             }
-            guard !aborted else { return }
-            let entryX = exitDir < 0 ? homeFrame.maxX : homeFrame.minX - spriteSize.width
-            let entryY = homeFrame.maxY - spriteSize.height - 70
-            place(panel, x: entryX, y: entryY)
-            await walkHome(panel, screen: homeFrame, from: entryX, y: entryY)
+        }
+        let docked = await goHome(panel, from: end)
+        poller.cancel()
+        await poller.value
+        guard !aborted else { return }
+        if let again = pending {
+            stop = again
+            if docked {
+                last = nil   // hidden at the notch: drop in from the top edge again
+            } else {
+                let frame = panel.frame
+                let screenFrame = DuckGeometry.screen(for: frame)?.frame ?? end.screen
+                last = (frame.origin.x, frame.origin.y, screenFrame)
+            }
+            continue outer
+        }
+        return
         }
     }
 
@@ -217,8 +228,31 @@ final class DuckController {
         CGPoint(x: screen.midX - spriteSize.width / 2, y: screen.maxY - spriteSize.height)
     }
 
+    /// Walks the duck home and docks it. Returns false if it was interrupted (U-turn or abort).
+    private func goHome(_ panel: NSPanel, from end: (x: CGFloat, y: CGFloat, screen: CGRect)) async -> Bool {
+        // On the built-in screen: walk to the notch. On an external screen: walk slowly off the
+        // edge toward the built-in display, come in from the matching edge there, carry on.
+        let homeFrame = Self.homeScreenFrame() ?? end.screen
+        if homeFrame == end.screen {
+            return await walkHome(panel, screen: end.screen, from: end.x, y: end.y)
+        }
+        let exitDir: CGFloat = homeFrame.midX < end.screen.midX ? -1 : 1
+        let exitX = exitDir < 0 ? end.screen.minX - spriteSize.width : end.screen.maxX
+        model.facingLeft = exitDir < 0
+        let dist = abs(exitX - end.x)
+        await tween(max(0.5, Double(dist) / 55)) { t in
+            self.place(panel, x: end.x + (exitX - end.x) * t, y: end.y)
+            self.model.footPhase = Int(Double(dist) * t / 5) % 2
+        }
+        guard !aborted, !uturn else { return false }
+        let entryX = exitDir < 0 ? homeFrame.maxX : homeFrame.minX - spriteSize.width
+        let entryY = homeFrame.maxY - spriteSize.height - 70
+        place(panel, x: entryX, y: entryY)
+        return await walkHome(panel, screen: homeFrame, from: entryX, y: entryY)
+    }
+
     /// Slow walk back along the screen, a gentle climb up to the notch, then fade away.
-    private func walkHome(_ panel: NSPanel, screen: CGRect, from x: CGFloat, y: CGFloat) async {
+    private func walkHome(_ panel: NSPanel, screen: CGRect, from x: CGFloat, y: CGFloat) async -> Bool {
         model.beak = 0; model.leanDegrees = 0
         let home = homeOrigin(on: screen)
         model.facingLeft = home.x < x
@@ -229,29 +263,32 @@ final class DuckController {
             self.model.bob = -abs(CGFloat(sin(t * .pi * max(2, Double(dist) / 30)))) * 2
         }
         model.bob = 0; model.footPhase = 0
+        guard !aborted, !uturn else { return false }
         await tween(1.0) { t in
             let e = t * t * (3 - 2 * t)
             self.place(panel, x: home.x, y: y + (home.y - y) * e)
         }
-        guard !aborted else { return }
+        guard !aborted, !uturn else { return false }
         // Docked: tuck the duck away completely (a parked duck's feet would dangle below the notch).
         await tween(0.35) { t in
             self.model.opacity = 1 - t
             self.model.scale = 1 - 0.5 * CGFloat(t)
         }
+        guard !aborted, !uturn else { return false }
         panel.orderOut(nil)
         model.opacity = 1; model.scale = 1; model.facingLeft = false
         parkedScreen = nil
+        return true
     }
 
     private func place(_ panel: NSPanel, x: CGFloat, y: CGFloat) {
         panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 
-    /// Runs `step(t)` for t in 0...1 over `duration` seconds at ~60 fps; ends early if aborted.
+    /// Runs `step(t)` for t in 0...1 over `duration` seconds at ~60 fps; ends early if aborted or U-turning.
     private func tween(_ duration: Double, _ step: @MainActor (Double) -> Void) async {
         let start = CACurrentMediaTime()
-        while !aborted {
+        while !aborted && !uturn {
             let t = min(1, (CACurrentMediaTime() - start) / duration)
             step(t)
             if t >= 1 { return }

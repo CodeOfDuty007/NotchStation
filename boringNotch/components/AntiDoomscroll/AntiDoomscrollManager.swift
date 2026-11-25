@@ -216,10 +216,6 @@ final class AntiDoomscrollManager: ObservableObject {
         var next = 0
         var counts: [String: Int] = [:]   // live tab count per window as tabs are closed
         var attempted = false
-        /// Measured close-button X (window-relative points) of the trigger tab, when it could be read.
-        var anchorWindow: String?
-        var anchorIndex = 0
-        var anchorCloseX: CGFloat?
         var failed = false
     }
 
@@ -270,46 +266,44 @@ final class AntiDoomscrollManager: ObservableObject {
             sweep.plan = await planSweep(trigger: trigger)
             guard Defaults[.antiDoomEnabled] else { return }
 
-            // Measure where the active (trigger) tab's cross really is from a screenshot of its
-            // window; skipped for Safari, full-screen windows and when Screen Recording is off.
-            let trigR = DuckGeometry.cocoaRect(fromQuartz: trigger.bounds, primaryHeight: primaryHeight)
-            if !trigger.browser.isSafari, let trigScreen = DuckGeometry.screen(for: trigR),
-               !DuckGeometry.isFullScreen(windowCocoa: trigR, screen: trigScreen.frame) {
-                let pid = NSRunningApplication.runningApplications(withBundleIdentifier: trigger.browser.bundleID).first?.processIdentifier ?? 0
-                let guess = DuckGeometry.tabTarget(windowCocoa: trigR, isSafari: false, index: trigger.index, count: trigger.count).x - trigR.minX
-                if let snap = await DoomShot.snapshot(pid: pid, quartzBounds: trigger.bounds),
-                   let x = DoomTabProbe.activeCloseX(snap, estimated: guess) {
-                    sweep.anchorWindow = "\(trigger.browser.bundleID):\(trigger.windowID)"
-                    sweep.anchorIndex = trigger.index
-                    sweep.anchorCloseX = x
-                }
-            }
-
             /// Builds the duck's next stop from the plan, skipping tabs whose rule is no longer spent.
-            func nextStop() -> DuckTrip? {
+            /// The window is re-read for every stop (tabs reflow as others close), its true frame is
+            /// taken from the window server, and the active tab's cross is re-measured from a screenshot.
+            func nextStop() async -> DuckTrip? {
                 while sweep.next < sweep.plan.count {
                     let tab = sweep.plan[sweep.next]
                     sweep.next += 1
                     let winKey = "\(tab.browser.bundleID):\(tab.windowID)"
-                    let count = sweep.counts[winKey] ?? tab.count
                     let target = Target.tab(tab)
                     guard Self.stillEnforceable(target) else { continue }
-                    let r = DuckGeometry.cocoaRect(fromQuartz: tab.bounds, primaryHeight: primaryHeight)
+                    let pid = NSRunningApplication.runningApplications(withBundleIdentifier: tab.browser.bundleID).first?.processIdentifier ?? 0
+
+                    var count = sweep.counts[winKey] ?? tab.count
+                    var bounds = tab.bounds
+                    var activeIndex: Int?
+                    if let live = await BrowserBridge.windowState(tab) { count = live.count; bounds = live.bounds; activeIndex = live.activeIndex }
+                    bounds = Self.trueBounds(pid: pid, like: bounds)
+                    guard Defaults[.antiDoomEnabled] else { return nil }
+
+                    let r = DuckGeometry.cocoaRect(fromQuartz: bounds, primaryHeight: primaryHeight)
                     guard let screen = DuckGeometry.screen(for: r) else { continue }
                     let fullScreen = DuckGeometry.isFullScreen(windowCocoa: r, screen: screen.frame)
                     var anchor: (index: Int, closeX: CGFloat)?
-                    if !fullScreen, sweep.anchorWindow == winKey, let x = sweep.anchorCloseX { anchor = (sweep.anchorIndex, x) }
+                    if !fullScreen, !tab.browser.isSafari, let active = activeIndex {
+                        let guess = DuckGeometry.tabTarget(windowCocoa: r, isSafari: false, index: active, count: count).x - r.minX
+                        if let snap = await DoomShot.snapshot(pid: pid, quartzBounds: bounds),
+                           let x = DoomTabProbe.activeCloseX(snap, estimated: guess) { anchor = (active, x) }
+                    }
                     let point = DuckGeometry.tabTarget(windowCocoa: r, isSafari: tab.browser.isSafari, index: tab.index,
                                                        count: count, anchor: anchor, fullScreen: fullScreen)
-                    DoomShot.log("trip \(tab.browser.name) win=\(tab.windowID) tab=\(tab.index)/\(count) bounds=\(tab.bounds) fullScreen=\(fullScreen) measured=\(anchor != nil) target=\(point)")
+                    DoomShot.log("trip \(tab.browser.name) win=\(tab.windowID) tab=\(tab.index)/\(count) scriptBounds=\(tab.bounds) trueBounds=\(bounds) fullScreen=\(fullScreen) measured=\(anchor != nil) target=\(point)")
                     return DuckTrip(target: point, facingLeft: false, screenFrame: screen.frame) {
                         guard Self.stillEnforceable(target) else { return false }
-                        let pid = NSRunningApplication.runningApplications(withBundleIdentifier: tab.browser.bundleID).first?.processIdentifier ?? 0
                         // Each tab is shot on its own: its window just before the close, and again after.
-                        let before = await DoomShot.capture(pid: pid, quartzBounds: tab.bounds, label: "before")
+                        let before = await DoomShot.capture(pid: pid, quartzBounds: bounds, label: "before")
                         let result = await BrowserBridge.close(tab)
                         try? await Task.sleep(for: .milliseconds(450))
-                        let after = await DoomShot.capture(pid: pid, quartzBounds: tab.bounds, label: "after")
+                        let after = await DoomShot.capture(pid: pid, quartzBounds: bounds, label: "after")
                         DoomShot.log("close \(tab.browser.name) win=\(tab.windowID) tab=\(tab.index)/\(count) url=\(tab.url) -> \(result.detail) before=\(before?.lastPathComponent ?? "-") after=\(after?.lastPathComponent ?? "-")")
                         // "gate:" = never dispatched (interrupted); "gone:" = target changed (stale).
                         if !result.detail.hasPrefix("gate:") { sweep.attempted = true }
@@ -321,8 +315,8 @@ final class AntiDoomscrollManager: ObservableObject {
                 return nil
             }
 
-            guard Defaults[.antiDoomEnabled], let first = nextStop() else { return }
-            await DuckController.shared.run(first, next: { nextStop() })
+            guard Defaults[.antiDoomEnabled], let first = await nextStop() else { return }
+            await DuckController.shared.run(first, next: { await nextStop() })
             if sweep.attempted { noteOutcome(e.key, closed: !sweep.failed, failed: sweep.failed) }
 
         case .app(let pid, let bundleID, let window):
@@ -341,6 +335,20 @@ final class AntiDoomscrollManager: ObservableObject {
             guard Defaults[.antiDoomEnabled] else { return }
             await DuckController.shared.run(trip)
         }
+    }
+
+    /// A browser's scripted window bounds can be wrong at the top edge (seen with a display arranged
+    /// above the primary one: the top was reported 122pt too low), so the real frame is taken from
+    /// the window server, matching on left edge, bottom edge and width, which stay correct.
+    private static func trueBounds(pid: pid_t, like b: CGRect) -> CGRect {
+        guard pid != 0, let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return b }
+        for w in info {
+            guard (w[kCGWindowOwnerPID as String] as? pid_t) == pid, (w[kCGWindowLayer as String] as? Int) == 0,
+                  let d = w[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
+            let r = CGRect(x: d["X"] ?? 0, y: d["Y"] ?? 0, width: d["Width"] ?? 0, height: d["Height"] ?? 0)
+            if abs(r.minX - b.minX) <= 3, abs(r.maxY - b.maxY) <= 3, abs(r.width - b.width) <= 3 { return r }
+        }
+        return b
     }
 
     /// Asks the app to quit politely (never force-quits, so unsaved work gets its save prompt).

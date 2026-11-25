@@ -112,6 +112,26 @@ enum BrowserBridge {
         } catch { return .failure(classify(error)) }
     }
 
+    /// Live state of one window: its scripted bounds, tab count and active tab index.
+    static func windowState(_ tab: DoomTab) async -> (bounds: CGRect, count: Int, activeIndex: Int)? {
+        guard Defaults[.antiDoomEnabled], tab.browser.isRunning else { return nil }
+        let script = """
+        if application id "\(tab.browser.bundleID)" is not running then return {}
+        tell application id "\(tab.browser.bundleID)"
+            try
+                set w to window id \(tab.windowID)
+            on error
+                return {}
+            end try
+            return {bounds of w, count of tabs of w, \(tab.browser.activeIndexExpression)}
+        end tell
+        """
+        guard let d = try? await AppleScriptHelper.execute(script), d.numberOfItems == 3,
+              let r = rect(from: d.atIndex(1)), let n = d.atIndex(2)?.int32Value,
+              let i = d.atIndex(3)?.int32Value else { return nil }
+        return (r, Int(n), Int(i))
+    }
+
     /// Closes one tab (foreground or background): the one at the observed index if it still has
     /// the observed address, otherwise the rightmost tab in that window with that address.
     /// Anything else is left alone.

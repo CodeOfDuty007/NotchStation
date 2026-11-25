@@ -342,13 +342,18 @@ final class AntiDoomscrollManager: ObservableObject {
     /// the window server, matching on left edge, bottom edge and width, which stay correct.
     private static func trueBounds(pid: pid_t, like b: CGRect) -> CGRect {
         guard pid != 0, let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return b }
+        var candidates: [CGRect] = []
         for w in info {
             guard (w[kCGWindowOwnerPID as String] as? pid_t) == pid, (w[kCGWindowLayer as String] as? Int) == 0,
                   let d = w[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
             let r = CGRect(x: d["X"] ?? 0, y: d["Y"] ?? 0, width: d["Width"] ?? 0, height: d["Height"] ?? 0)
-            if abs(r.minX - b.minX) <= 3, abs(r.maxY - b.maxY) <= 3, abs(r.width - b.width) <= 3 { return r }
+            if abs(r.minX - b.minX) <= 3, abs(r.maxY - b.maxY) <= 3, abs(r.width - b.width) <= 3 { candidates.append(r) }
         }
-        return b
+        // Several windows can share left/bottom/width (stacked windows): take the one whose top and
+        // height are closest to what the browser reported, and log the ambiguity.
+        guard let best = candidates.min(by: { abs($0.minY - b.minY) + abs($0.height - b.height) < abs($1.minY - b.minY) + abs($1.height - b.height) }) else { return b }
+        if candidates.count > 1 { DoomShot.log("trueBounds ambiguous: \(candidates.count) windows match \(b); using \(best)") }
+        return best
     }
 
     /// Asks the app to quit politely (never force-quits, so unsaved work gets its save prompt).

@@ -305,12 +305,13 @@ final class AntiDoomscrollManager: ObservableObject {
                     let winKey = "\(tab.browser.bundleID):\(tab.windowID)"
                     let count = sweep.counts[winKey] ?? tab.count
                     let target = Target.tab(tab)
-                    guard Self.stillEnforceable(target) else { continue }
+                    // Re-checked per stop: a failure earlier in this very outing may have tripped the back-off.
+                    guard Self.stillEnforceable(target), !self.isBackedOff(tab) else { continue }
                     let r = DuckGeometry.cocoaRect(fromQuartz: tab.bounds, primaryHeight: primaryHeight)
                     guard let screen = DuckGeometry.screen(for: r) else { continue }
                     let point = DuckGeometry.tabTarget(windowCocoa: r, isSafari: tab.browser.isSafari, index: tab.index, count: count)
                     return DuckTrip(target: point, facingLeft: false, screenFrame: screen.frame) {
-                        guard Self.stillEnforceable(target) else { return false }
+                        guard Self.stillEnforceable(target), !self.isBackedOff(tab) else { return false }
                         let pid = NSRunningApplication.runningApplications(withBundleIdentifier: tab.browser.bundleID).first?.processIdentifier ?? 0
                         // Each tab is shot on its own: its window just before the close, and again after.
                         let before = await DoomShot.capture(pid: pid, quartzBounds: tab.bounds, label: "before")

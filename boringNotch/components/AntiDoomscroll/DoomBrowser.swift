@@ -14,8 +14,6 @@ struct DoomBrowser: Hashable {
     let isSafari: Bool
 
     var activeTabExpression: String { isSafari ? "current tab" : "active tab" }
-    /// Stable id of the active tab of window `w` (Safari tabs have none: 0).
-    var activeIDExpression: String { isSafari ? "0" : "id of active tab of w" }
     /// AppleScript expression for the 1-based index of the active tab of window `w`.
     var activeIndexExpression: String { isSafari ? "index of current tab of w" : "active tab index of w" }
 
@@ -51,8 +49,6 @@ struct DoomTab: Equatable {
     let index: Int
     /// Number of tabs in the window (used to estimate where the active tab sits).
     let count: Int
-    /// Stable per-tab id (Chromium browsers); 0 when the browser has none (Safari).
-    let tabID: Int
     /// Window frame in AppleScript/Quartz global coordinates (origin top-left of the primary display).
     let bounds: CGRect
 }
@@ -69,17 +65,16 @@ enum BrowserBridge {
         tell application id "\(browser.bundleID)"
             if (count of windows) is 0 then return {}
             set w to front window
-            return {URL of \(browser.activeTabExpression) of w, bounds of w, id of w, \(browser.activeIndexExpression), count of tabs of w, \(browser.activeIDExpression)}
+            return {URL of \(browser.activeTabExpression) of w, bounds of w, id of w, \(browser.activeIndexExpression), count of tabs of w}
         end tell
         """
         do {
-            guard let d = try await AppleScriptHelper.execute(script), d.numberOfItems == 6,
+            guard let d = try await AppleScriptHelper.execute(script), d.numberOfItems == 5,
                   let url = d.atIndex(1)?.stringValue, !url.isEmpty,
                   let rect = rect(from: d.atIndex(2)), let wid = d.atIndex(3)?.int32Value,
                   let idx = d.atIndex(4)?.int32Value,
-                  let cnt = d.atIndex(5)?.int32Value,
-                  let tid = d.atIndex(6)?.int32Value else { return .success(nil) }
-            return .success(DoomTab(browser: browser, windowID: Int(wid), url: url, index: Int(idx), count: Int(cnt), tabID: Int(tid), bounds: rect))
+                  let cnt = d.atIndex(5)?.int32Value else { return .success(nil) }
+            return .success(DoomTab(browser: browser, windowID: Int(wid), url: url, index: Int(idx), count: Int(cnt), bounds: rect))
         } catch { return .failure(classify(error)) }
     }
 
@@ -98,8 +93,7 @@ enum BrowserBridge {
                 repeat with t in tabs of w
                     set i to i + 1
                     set u to URL of t
-                    set tid to \(browser.isSafari ? "0" : "id of t")
-                    if u is not missing value then set end of out to {wid, i, u, b, cnt, tid}
+                    if u is not missing value then set end of out to {wid, i, u, b, cnt}
                 end repeat
             end repeat
         end tell
@@ -109,11 +103,10 @@ enum BrowserBridge {
             guard let d = try await AppleScriptHelper.execute(script) else { return .success([]) }
             var tabs: [DoomTab] = []
             for n in stride(from: 1, through: d.numberOfItems, by: 1) {
-                guard let item = d.atIndex(n), item.numberOfItems == 6, let wid = item.atIndex(1)?.int32Value,
+                guard let item = d.atIndex(n), item.numberOfItems == 5, let wid = item.atIndex(1)?.int32Value,
                       let idx = item.atIndex(2)?.int32Value, let url = item.atIndex(3)?.stringValue,
-                      let r = rect(from: item.atIndex(4)), let cnt = item.atIndex(5)?.int32Value,
-                      let tid = item.atIndex(6)?.int32Value else { continue }
-                tabs.append(DoomTab(browser: browser, windowID: Int(wid), url: url, index: Int(idx), count: Int(cnt), tabID: Int(tid), bounds: r))
+                      let r = rect(from: item.atIndex(4)), let cnt = item.atIndex(5)?.int32Value else { continue }
+                tabs.append(DoomTab(browser: browser, windowID: Int(wid), url: url, index: Int(idx), count: Int(cnt), bounds: r))
             }
             return .success(tabs)
         } catch { return .failure(classify(error)) }
@@ -134,32 +127,20 @@ enum BrowserBridge {
             end try
             set n to count of tabs of w
             set target to 0
-            if \(tab.tabID) is not 0 then
-                -- Chromium: the tab's own id decides; a different tab is never closed in its place.
-                repeat with i from 1 to n
+            try
+                if \(tab.index) <= n then
+                    if (URL of tab \(tab.index) of w) is "\(escape(tab.url))" then set target to \(tab.index)
+                end if
+            end try
+            if target is 0 then
+                repeat with i from n to 1 by -1
                     try
-                        if (id of tab i of w) is \(tab.tabID) then
-                            if (URL of tab i of w) is "\(escape(tab.url))" then set target to i
+                        if (URL of tab i of w) is "\(escape(tab.url))" then
+                            set target to i
                             exit repeat
                         end if
                     end try
                 end repeat
-            else
-                try
-                    if \(tab.index) <= n then
-                        if (URL of tab \(tab.index) of w) is "\(escape(tab.url))" then set target to \(tab.index)
-                    end if
-                end try
-                if target is 0 then
-                    repeat with i from n to 1 by -1
-                        try
-                            if (URL of tab i of w) is "\(escape(tab.url))" then
-                                set target to i
-                                exit repeat
-                            end if
-                        end try
-                    end repeat
-                end if
             end if
             if target is 0 then return "gone: tab not found"
             close tab target of w

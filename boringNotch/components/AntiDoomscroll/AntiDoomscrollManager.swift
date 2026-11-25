@@ -115,7 +115,7 @@ final class AntiDoomscrollManager: ObservableObject {
         let updated = Defaults[.antiDoomRules]
         for rule in updated where rule.isExhausted && matched.contains(rule.id) {
             if rule.kind == .url, let tab = frontTab {
-                if isBackedOff(tab) { continue }
+                if failedTabUntil[Self.failKey(tab)].map({ $0 > Date() }) ?? false { continue }
                 enqueue(Enforcement(key: "tabs", target: .tab(tab)))
             } else if rule.kind == .app {
                 enqueue(Enforcement(key: "app:\(bundleID)",
@@ -203,39 +203,20 @@ final class AntiDoomscrollManager: ObservableObject {
     }
 
     private var outcomeRecorded = Set<String>()
-    /// Failure memory. Chromium tabs have a stable id, so only that exact tab is backed off for
-    /// 3 minutes. Safari tabs have no id, so a position-based key could hit a different tab;
-    /// instead three failures in a row pause that browser for 3 minutes.
+    /// Tabs a close attempt failed on, with when the duck may try again.
+    /// Scoped to the tab so one stubborn tab never blocks enforcement on new ones.
     private var failedTabUntil: [String: Date] = [:]
-    private var browserFailures: [String: Int] = [:]
-    private var browserBlockedUntil: [String: Date] = [:]
-
-    private func isBackedOff(_ t: DoomTab) -> Bool {
+    /// Identifies one specific tab (browser + window + position + address), so a new tab that happens
+    /// to share the address - even in the same window - is never covered by another tab's back-off.
+    private static func failKey(_ t: DoomTab) -> String { "\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)" }
+    private func activeFailedKeys() -> Set<String> {
         let now = Date()
-        if t.tabID != 0 {
-            return failedTabUntil["\(t.browser.bundleID):\(t.windowID):\(t.tabID)"].map { $0 > now } ?? false
-        }
-        return browserBlockedUntil[t.browser.bundleID].map { $0 > now } ?? false
+        failedTabUntil = failedTabUntil.filter { $0.value > now }
+        return Set(failedTabUntil.keys)
     }
 
-    private func recordFailure(_ t: DoomTab) {
-        let until = Date().addingTimeInterval(180)
-        if t.tabID != 0 {
-            failedTabUntil["\(t.browser.bundleID):\(t.windowID):\(t.tabID)"] = until
-        } else {
-            let n = (browserFailures[t.browser.bundleID] ?? 0) + 1
-            if n >= 3 { browserBlockedUntil[t.browser.bundleID] = until; browserFailures[t.browser.bundleID] = 0 }
-            else { browserFailures[t.browser.bundleID] = n }
-        }
-    }
-
-    private func recordSuccess(_ t: DoomTab) {
-        if t.tabID == 0 { browserFailures[t.browser.bundleID] = 0 }
-    }
-
-    /// Records what a real attempt achieved for an enforcement key: a failed app quit backs off
-    /// for 3 minutes so the duck can't hound the same app; successes and stale targets only
-    /// pause briefly. (Failed tab closes are tracked per tab by `recordFailure`.)
+    /// Records what a real attempt achieved. Failures back off for 3 minutes so the duck can't
+    /// peck the same page over and over; successes and stale targets only pause briefly.
     private func noteOutcome(_ key: String, closed: Bool, failed: Bool) {
         outcomeRecorded.insert(key)
         cooldown[key] = Date().addingTimeInterval(closed ? 2 : (failed ? 180 : 3))
@@ -255,7 +236,7 @@ final class AntiDoomscrollManager: ObservableObject {
     /// All tabs covered by a spent rule - foreground and background, every window of every running
     /// supported browser - ordered so the trigger tab goes first and, within a window, right to left
     /// (closing from the right keeps the remaining tabs' indices valid).
-    private func planSweep(trigger: DoomTab?) async -> [DoomTab] {
+    private func planSweep(trigger: DoomTab?, exclude: Set<String> = []) async -> [DoomTab] {
         let spent = Defaults[.antiDoomRules].filter { $0.kind == .url && $0.isExhausted }
         var found: [DoomTab] = []
         for browser in DoomBrowser.supported where browser.isRunning {
@@ -263,7 +244,7 @@ final class AntiDoomscrollManager: ObservableObject {
             case .success(let tabs):
                 deniedBrowsers.remove(browser.bundleID)
                 found += tabs.filter { tab in
-                    !isBackedOff(tab) && spent.contains { $0.matches(url: tab.url) }
+                    !exclude.contains(Self.failKey(tab)) && spent.contains { $0.matches(url: tab.url) }
                 }
             case .failure(.denied): deniedBrowsers.insert(browser.bundleID)
             case .failure(.failed): break
@@ -294,7 +275,7 @@ final class AntiDoomscrollManager: ObservableObject {
         switch e.target {
         case .tab(let trigger):
             let sweep = Sweep()
-            sweep.plan = await planSweep(trigger: trigger)
+            sweep.plan = await planSweep(trigger: trigger, exclude: activeFailedKeys())
             guard Defaults[.antiDoomEnabled] else { return }
 
             /// Builds the duck's next stop from the plan, skipping tabs whose rule is no longer spent.
@@ -322,9 +303,8 @@ final class AntiDoomscrollManager: ObservableObject {
                         if !result.detail.hasPrefix("gate:") { sweep.attempted = true }
                         if !result.closed, !result.detail.hasPrefix("gate:"), !result.detail.hasPrefix("gone:") { sweep.failed = true }
                         if !result.closed, !result.detail.hasPrefix("gate:"), !result.detail.hasPrefix("gone:") {
-                            self.recordFailure(tab)
+                            self.failedTabUntil[Self.failKey(tab)] = Date().addingTimeInterval(180)
                         }
-                        if result.closed { self.recordSuccess(tab) }
                         if result.closed { sweep.counts[winKey] = count - 1 }
                         return result.closed
                     }
@@ -337,7 +317,7 @@ final class AntiDoomscrollManager: ObservableObject {
             func nextOrRescan() async -> DuckTrip? {
                 if let stop = nextStop() { return stop }
                 guard Defaults[.antiDoomEnabled] else { return nil }
-                let fresh = await planSweep(trigger: nil)
+                let fresh = await planSweep(trigger: nil, exclude: activeFailedKeys())
                 guard !fresh.isEmpty, Defaults[.antiDoomEnabled] else { return nil }
                 sweep.plan = fresh; sweep.next = 0; sweep.counts = [:]
                 return nextStop()

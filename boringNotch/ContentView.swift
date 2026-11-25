@@ -368,6 +368,8 @@ struct ContentView: View {
                         ScreenshotsView()
                     case .pomodoro:
                         PomodoroView()
+                    case .antiDoom:
+                        AntiDoomscrollView()
                     }
                 }
                 .transition(

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 64" width="900" height="64" role="img" aria-label="A tiny duck walking across the page">
+  <title>A tiny duck walking across the page</title>
+  <defs>
+    <radialGradient id="body" cx="40%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#FFAE2B"/>
+      <stop offset="0.6" stop-color="#F69C19"/>
+      <stop offset="1" stop-color="#C96707"/>
+    </radialGradient>
+    <style>
+      .duck  { animation: cross 16s linear infinite; }
+      .bob   { animation: bob 0.5s ease-in-out infinite; }
+      .footA { animation: step 0.5s ease-in-out infinite; }
+      .footB { animation: step 0.5s ease-in-out infinite; animation-delay: -0.25s; }
+      .beak  { animation: peck 4s ease-in-out infinite; transform-origin: 40px 31px; }
+      @keyframes cross { from { transform: translateX(-60px); } to { transform: translateX(940px); } }
+      @keyframes bob   { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+      @keyframes step  { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+      @keyframes peck  { 0%, 78%, 100% { transform: scaleX(1); } 84% { transform: scaleX(1.35); } 90% { transform: scaleX(1); } }
+      @media (prefers-reduced-motion: reduce) { .duck, .bob, .footA, .footB, .beak { animation: none; } .duck { transform: translateX(420px); } }
+    </style>
+  </defs>
+  <!-- ground -->
+  <line x1="0" y1="55" x2="900" y2="55" stroke="#8b949e" stroke-opacity="0.35" stroke-width="1.5" stroke-dasharray="2 7" stroke-linecap="round"/>
+  <g class="duck">
+    <g class="bob">
+      <g transform="translate(0 4)">
+        <!-- feet -->
+        <ellipse class="footA" cx="14" cy="49" rx="7" ry="3" fill="#F39617" stroke="#261204" stroke-width="1.2"/>
+        <ellipse class="footB" cx="27" cy="49" rx="7" ry="3" fill="#F39617" stroke="#261204" stroke-width="1.2"/>
+        <!-- body -->
+        <circle cx="22" cy="28" r="19" fill="url(#body)" stroke="#261204" stroke-width="1.6"/>
+        <path d="M10 20 A14 14 0 0 1 19 12" fill="none" stroke="#FFF6DC" stroke-width="2.2" stroke-linecap="round"/>
+        <circle cx="11" cy="26" r="1.4" fill="#FFF6DC"/>
+        <!-- eye -->
+        <ellipse cx="32" cy="22" rx="1.8" ry="3" fill="#221003"/>
+        <!-- beak -->
+        <g class="beak">
+          <rect x="38" y="25" width="15" height="7" rx="3.5" fill="#F89F1F" stroke="#261204" stroke-width="1.2"/>
+          <rect x="41" y="26" width="9" height="1.6" rx="0.8" fill="#FFC966"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

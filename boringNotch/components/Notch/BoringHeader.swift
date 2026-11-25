@@ -75,6 +75,18 @@ struct BoringHeader: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         .help("Pomodoro timer")
+                        Button(action: {
+                            withAnimation(.smooth) {
+                                coordinator.currentView = .antiDoom
+                            }
+                        }) {
+                            Capsule()
+                                .fill(coordinator.currentView == .antiDoom ? Color(nsColor: .secondarySystemFill) : Color.black)
+                                .frame(width: 30, height: 30)
+                                .overlay { DuckIcon() }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .help("Anti-doomscroll duck")
                         if Defaults[.settingsIconInNotch] {
                             Button(action: {
                                 DispatchQueue.main.async {

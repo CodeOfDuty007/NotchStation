@@ -220,7 +220,12 @@ final class AntiDoomscrollManager: ObservableObject {
         var failedKeys = Set<String>()   // tabs the duck could not close: never re-targeted
     }
 
-    private static func tabKey(_ t: DoomTab) -> String { "\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)" }
+/// Identity used to remember a tab that failed to close. Chromium tabs have a stable id, so a
+    /// new tab never inherits another's failure and a moved tab is still recognised; Safari tabs
+    /// have none, so position + address is the best available.
+    private static func tabKey(_ t: DoomTab) -> String {
+        t.tabID != 0 ? "id:\(t.browser.bundleID):\(t.windowID):\(t.tabID)" : "pos:\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)"
+    }
 
     /// All tabs covered by a spent rule - foreground and background, every window of every running
     /// supported browser - ordered so the trigger tab goes first and, within a window, right to left

@@ -49,6 +49,9 @@ struct DoomTab: Equatable {
     let index: Int
     /// Number of tabs in the window (used to estimate where the active tab sits).
     let count: Int
+    /// Stable per-tab id (Chromium browsers; set by the tab list only). 0 = unknown. Used solely to
+    /// remember tabs that failed to close - never for deciding what to close.
+    var tabID: Int = 0
     /// Window frame in AppleScript/Quartz global coordinates (origin top-left of the primary display).
     let bounds: CGRect
 }
@@ -93,7 +96,8 @@ enum BrowserBridge {
                 repeat with t in tabs of w
                     set i to i + 1
                     set u to URL of t
-                    if u is not missing value then set end of out to {wid, i, u, b, cnt}
+                    set tid to \(browser.isSafari ? "0" : "id of t")
+                    if u is not missing value then set end of out to {wid, i, u, b, cnt, tid}
                 end repeat
             end repeat
         end tell
@@ -103,10 +107,13 @@ enum BrowserBridge {
             guard let d = try await AppleScriptHelper.execute(script) else { return .success([]) }
             var tabs: [DoomTab] = []
             for n in stride(from: 1, through: d.numberOfItems, by: 1) {
-                guard let item = d.atIndex(n), item.numberOfItems == 5, let wid = item.atIndex(1)?.int32Value,
+                guard let item = d.atIndex(n), item.numberOfItems == 6, let wid = item.atIndex(1)?.int32Value,
                       let idx = item.atIndex(2)?.int32Value, let url = item.atIndex(3)?.stringValue,
-                      let r = rect(from: item.atIndex(4)), let cnt = item.atIndex(5)?.int32Value else { continue }
-                tabs.append(DoomTab(browser: browser, windowID: Int(wid), url: url, index: Int(idx), count: Int(cnt), bounds: r))
+                      let r = rect(from: item.atIndex(4)), let cnt = item.atIndex(5)?.int32Value,
+                      let tid = item.atIndex(6)?.int32Value else { continue }
+                var tab = DoomTab(browser: browser, windowID: Int(wid), url: url, index: Int(idx), count: Int(cnt), bounds: r)
+                tab.tabID = Int(tid)
+                tabs.append(tab)
             }
             return .success(tabs)
         } catch { return .failure(classify(error)) }

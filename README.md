@@ -86,7 +86,7 @@ you overspend, a small duck walks out onto your desktop and closes the offending
   strip to the active tab's close button, extends its beak and pecks - and the tab closes.
 - It closes **every** tab covered by a spent rule in a single outing - foreground and background, in every
   window of every supported browser that is running - visiting each in turn, and docks only when none are
-  left. Tabs you open while it is walking home make it U-turn at once instead of docking first.
+  left.
 - It works across external displays and always returns to the Mac's built-in (notch) screen, walking slowly
   to the notch and fading away.
 - App rules work the same way: the duck pecks the window's red close dot and asks the app to quit
@@ -97,11 +97,8 @@ you overspend, a small duck walks out onto your desktop and closes the offending
 - The **master slider is the only off switch.** Off means nothing is read, nothing is closed, and any duck in
   flight is sent home. There is no per-rule pause or reset button.
 - Browsers are never launched by the app: scripts only run against a browser that is already open. The tab's
-  address (and, in Chromium browsers, its stable tab id) is re-verified right before every close, so a
-  different tab is never closed in its place.
-- A tab that fails to close is skipped for 3 minutes instead of being retried in a loop. In Safari, whose tabs
-  have no id, three failures in a row pause Safari for 3 minutes. New matching tabs are otherwise still
-  closed immediately.
+  address is re-verified right before every close, so a different page is never closed in its place.
+- After a failed close the duck backs off for 3 minutes instead of retrying in a loop.
 - Each close is logged to `DoomLog/log.txt` in the app's Application Support folder (outcome and, if it
   failed, the exact reason), with a screenshot of just that browser window before and after.
 

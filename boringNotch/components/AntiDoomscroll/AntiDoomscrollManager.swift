@@ -217,7 +217,6 @@ final class AntiDoomscrollManager: ObservableObject {
         var counts: [String: Int] = [:]   // live tab count per window as tabs are closed
         var attempted = false
         var failed = false
-        var failedKeys = Set<String>()   // tabs the duck could not close: never re-targeted
     }
 
     private static func tabKey(_ t: DoomTab) -> String { "\(t.browser.bundleID):\(t.windowID):\(t.index):\(t.url)" }
@@ -225,7 +224,7 @@ final class AntiDoomscrollManager: ObservableObject {
     /// All tabs covered by a spent rule - foreground and background, every window of every running
     /// supported browser - ordered so the trigger tab goes first and, within a window, right to left
     /// (closing from the right keeps the remaining tabs' indices valid).
-    private func planSweep(trigger: DoomTab?, exclude: Set<String> = []) async -> [DoomTab] {
+    private func planSweep(trigger: DoomTab?) async -> [DoomTab] {
         let spent = Defaults[.antiDoomRules].filter { $0.kind == .url && $0.isExhausted }
         var found: [DoomTab] = []
         for browser in DoomBrowser.supported where browser.isRunning {
@@ -233,7 +232,7 @@ final class AntiDoomscrollManager: ObservableObject {
             case .success(let tabs):
                 deniedBrowsers.remove(browser.bundleID)
                 found += tabs.filter { tab in
-                    !exclude.contains(Self.tabKey(tab)) && spent.contains { $0.matches(url: tab.url) }
+                    spent.contains { $0.matches(url: tab.url) }
                 }
             case .failure(.denied): deniedBrowsers.insert(browser.bundleID)
             case .failure(.failed): break
@@ -291,7 +290,6 @@ final class AntiDoomscrollManager: ObservableObject {
                         // "gate:" = never dispatched (interrupted); "gone:" = target changed (stale).
                         if !result.detail.hasPrefix("gate:") { sweep.attempted = true }
                         if !result.closed, !result.detail.hasPrefix("gate:"), !result.detail.hasPrefix("gone:") { sweep.failed = true }
-                        if !result.closed { sweep.failedKeys.insert(Self.tabKey(tab)) }
                         if result.closed { sweep.counts[winKey] = count - 1 }
                         return result.closed
                     }
@@ -299,19 +297,8 @@ final class AntiDoomscrollManager: ObservableObject {
                 return nil
             }
 
-            /// The next planned tab; once the plan is used up, rescan so tabs opened while the duck
-            /// was working (or walking home) are picked up immediately.
-            func nextOrRescan() async -> DuckTrip? {
-                if let stop = nextStop() { return stop }
-                guard Defaults[.antiDoomEnabled] else { return nil }
-                let fresh = await planSweep(trigger: nil, exclude: sweep.failedKeys)
-                guard !fresh.isEmpty, Defaults[.antiDoomEnabled] else { return nil }
-                sweep.plan = fresh; sweep.next = 0; sweep.counts = [:]
-                return nextStop()
-            }
-
             guard Defaults[.antiDoomEnabled], let first = nextStop() else { return }
-            await DuckController.shared.run(first, next: { await nextOrRescan() })
+            await DuckController.shared.run(first, next: { nextStop() })
             if sweep.attempted { noteOutcome(e.key, closed: !sweep.failed, failed: sweep.failed) }
 
         case .app(let pid, let bundleID, let window):

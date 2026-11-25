@@ -56,6 +56,8 @@ A work/rest timer built into the notch, opened from the stopwatch button on the 
 
 ### 🦆 Anti-Doomscroll Duck
 
+<p align="center"><img src="docs/duck-walk.svg" alt="A tiny duck walking across the page" width="100%"></p>
+
 An always-running guard for doomscrolling, opened from the duck button in the notch header (next to the
 Pomodoro button). You list websites and apps, give each a time allowance, and flip one master switch. Once
 you overspend, a small duck walks out onto your desktop and closes the offending tabs for you.

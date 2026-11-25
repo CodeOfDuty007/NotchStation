@@ -2,7 +2,7 @@
 
 **NotchStation** turns your MacBook's notch into a control hub: now-playing media with a visualizer,
 calendar/reminders, an AirDrop-capable file shelf, a webcam mirror, system HUD replacements — plus a
-**clipboard history tab**, a **screenshots tray**, and a **Pomodoro timer**, added on top of the original app.
+**clipboard history tab**, a **screenshots tray**, a **Pomodoro timer**, and an **anti-doomscroll duck**, added on top of the original app.
 
 Built on and credited to **[Boring Notch](https://github.com/TheBoredTeam/boring.notch)** by
 [TheBoredTeam](https://github.com/TheBoredTeam). See [License & Attribution](#license--attribution) below —
@@ -54,6 +54,37 @@ A work/rest timer built into the notch, opened from the stopwatch button on the 
 - Controls on the ring: play/pause, reset, and skip to the other phase. Durations, mute state, and the
   chosen sound are remembered between launches.
 
+### 🦆 Anti-Doomscroll Duck
+
+An always-running guard, opened from the duck button in the notch header (next to the Pomodoro button). You
+list websites and apps with a time allowance; when you overspend, a small duck walks out and closes them.
+
+- **Rules.** Add a *website* as a base URL (`instagram.com` - also matches `www.` and subdomains, never
+  look-alikes such as `notinstagram.com`) or a URL with a path (`reddit.com/r/all` matches that path and
+  below), or any *installed app*, plus a limit in minutes. Firefox exposes no tab scripting, so it can only be
+  limited as a whole app.
+- **Counts only what you are actually looking at.** Time accrues only while the rule is the active tab of the
+  front window of the frontmost browser (or the frontmost app, for app rules). Closing the tab does **not**
+  reset the clock. Each allowance renews 12 hours after its first use in a window.
+- **The duck.** When a limit is spent the duck floats down from the top edge of the screen the browser is on,
+  walks along the tab strip to the active tab's close button, extends its beak, pecks, and the tab closes. It
+  closes **every** matching tab - foreground and background, every window, every supported browser - in one
+  outing, and it docks only when none are left. If you open more matching tabs while it is walking home it
+  U-turns immediately instead of docking first. Works on external displays; it always returns to the Mac's
+  built-in (notch) screen, walks slowly to the notch and fades away.
+- **Only one off switch.** The master slider in the tab. Off = nothing is read, nothing is closed, the duck
+  is sent home. There is no per-rule pause or reset.
+- **Evidence and logs.** For each tab it takes a screenshot of just that browser window before and after the
+  close (needs Screen Recording; skipped if denied) and appends a line to `DoomLog/log.txt` in the app's
+  Application Support folder with the outcome and the reason for any failure.
+- **Safety.** Never launches a closed browser, re-verifies the address right before closing, never
+  force-quits an app (it asks politely, then hides it), and a failed close backs off for 3 minutes instead of
+  retrying. Supported browsers: Safari, Chrome (+Canary), Chromium, Brave, Edge, Arc, Vivaldi, Opera - each
+  asks for macOS Automation permission once.
+- **Known limits.** The beak's aim at the close button is estimated from the window frame, tab count and
+  active tab index (scripting exposes no tab geometry; calibrated on Chrome) - the close itself is done by
+  scripting. If an app refuses to quit, it is hidden instead.
+
 ## Everything from upstream
 
 - 🎧 Now-playing media controls with a visualizer
@@ -103,6 +134,8 @@ There's no CLI package manager or test runner for this project — Xcode is the 
 - Hover over the notch to expand it and switch between tabs.
 - Click the stopwatch button in the notch header to start a Pomodoro; start it and close the notch to see
   the countdown bar beside the notch.
+- Click the duck button in the notch header, add a site or app with a limit and flip the slider on; macOS will
+  ask once for Automation (and Screen Recording, for the before/after screenshots) permission.
 - Click the menu bar icon to customize behavior.
 
 ## Contributing
@@ -118,7 +151,9 @@ As required by GPL-3.0 §5(a), this notice records that modifications were made:
 
 > Modified by [@CodeOfDuty007](https://github.com/CodeOfDuty007), 2026: added a Clipboard History tab (auto-capture, launch-time monitoring)
 > a Screenshots tray (multi-select, hover-delete, Space preview, drag-to-trash), and a Pomodoro timer tab
-> (work/rest timers, scroll-wheel and typed time entry, mute/visual alarm, closed-notch countdown bar); disabled Sparkle's
+> (work/rest timers, scroll-wheel and typed time entry, mute/visual alarm, closed-notch countdown bar), and an
+> Anti-Doomscroll tab (per-site/app time limits counted on the active tab only, with a desktop duck that closes
+> tabs through browser scripting); disabled Sparkle's
 > automatic update checks and removed the upstream appcast feed URL, since this fork doesn't publish its
 > own releases; reworked repository docs and CI to fit a personal fork rather than the upstream project.
 

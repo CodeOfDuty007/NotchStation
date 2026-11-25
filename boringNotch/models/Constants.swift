@@ -106,6 +106,12 @@ extension Defaults.Keys {
     static let pomodoroMuted = Key<Bool>("pomodoroMuted", default: false)
     static let pomodoroSoundName = Key<String>("pomodoroSoundName", default: "Hero")
 
+    // MARK: Anti-Doomscroll
+    /// Master switch. Off = nothing is read and nothing is closed.
+    static let antiDoomEnabled = Key<Bool>("antiDoomEnabled", default: false)
+    static let antiDoomRules = Key<[DoomRule]>("antiDoomRules", default: [])
+    static let antiDoomLedger = Key<[String: DoomLedgerEntry]>("antiDoomLedger", default: [:])
+
     // MARK: Appearance
     static let showEmojis = Key<Bool>("showEmojis", default: false)
     //static let alwaysShowTabs = Key<Bool>("alwaysShowTabs", default: true)

@@ -162,6 +162,15 @@
 		B1F747F92EC7E94000F841DB /* LottieView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1F747F82EC7E94000F841DB /* LottieView.swift */; };
 		B1FEB4992C7686630066EBBC /* PanGesture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1FEB4982C7686630066EBBC /* PanGesture.swift */; };
 		F38DE6482D8243E7008B5C6D /* BatteryActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */; };
+		CB0500000000000000000200 /* DoomRule.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0500000000000000000100 /* DoomRule.swift */; };
+		CB0500000000000000000201 /* DoomBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0500000000000000000101 /* DoomBrowser.swift */; };
+		CB0500000000000000000202 /* DuckSpriteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0500000000000000000102 /* DuckSpriteView.swift */; };
+		CB0500000000000000000203 /* DuckController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0500000000000000000103 /* DuckController.swift */; };
+		CB0500000000000000000204 /* AntiDoomscrollManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0500000000000000000104 /* AntiDoomscrollManager.swift */; };
+		CB0500000000000000000205 /* InstalledApps.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0500000000000000000105 /* InstalledApps.swift */; };
+		CB0500000000000000000206 /* AppDelegate+AntiDoomscroll.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0500000000000000000106 /* AppDelegate+AntiDoomscroll.swift */; };
+		CB0500000000000000000207 /* AntiDoomscrollView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0500000000000000000107 /* AntiDoomscrollView.swift */; };
+		CB0500000000000000000208 /* DoomShot.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB0500000000000000000108 /* DoomShot.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -347,6 +356,15 @@
 		B1F747F82EC7E94000F841DB /* LottieView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieView.swift; sourceTree = "<group>"; };
 		B1FEB4982C7686630066EBBC /* PanGesture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PanGesture.swift; sourceTree = "<group>"; };
 		F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryActivityManager.swift; sourceTree = "<group>"; };
+		CB0500000000000000000100 /* DoomRule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoomRule.swift; sourceTree = "<group>"; };
+		CB0500000000000000000101 /* DoomBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoomBrowser.swift; sourceTree = "<group>"; };
+		CB0500000000000000000102 /* DuckSpriteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckSpriteView.swift; sourceTree = "<group>"; };
+		CB0500000000000000000103 /* DuckController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DuckController.swift; sourceTree = "<group>"; };
+		CB0500000000000000000104 /* AntiDoomscrollManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntiDoomscrollManager.swift; sourceTree = "<group>"; };
+		CB0500000000000000000105 /* InstalledApps.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledApps.swift; sourceTree = "<group>"; };
+		CB0500000000000000000106 /* AppDelegate+AntiDoomscroll.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppDelegate+AntiDoomscroll.swift"; sourceTree = "<group>"; };
+		CB0500000000000000000107 /* AntiDoomscrollView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AntiDoomscrollView.swift; sourceTree = "<group>"; };
+		CB0500000000000000000108 /* DoomShot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoomShot.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -395,6 +413,30 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		CB0500000000000000000020 /* AntiDoomscroll */ = {
+			isa = PBXGroup;
+			children = (
+				CB0500000000000000000100 /* DoomRule.swift */,
+				CB0500000000000000000101 /* DoomBrowser.swift */,
+				CB0500000000000000000102 /* DuckSpriteView.swift */,
+				CB0500000000000000000103 /* DuckController.swift */,
+				CB0500000000000000000104 /* AntiDoomscrollManager.swift */,
+				CB0500000000000000000105 /* InstalledApps.swift */,
+				CB0500000000000000000106 /* AppDelegate+AntiDoomscroll.swift */,
+				CB0500000000000000000108 /* DoomShot.swift */,
+				CB0500000000000000000021 /* Views */,
+			);
+			path = AntiDoomscroll;
+			sourceTree = "<group>";
+		};
+		CB0500000000000000000021 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				CB0500000000000000000107 /* AntiDoomscrollView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
 		CB0400000000000000000020 /* Pomodoro */ = {
 			isa = PBXGroup;
 			children = (
@@ -555,6 +597,7 @@
 				CB01000000000000000000A1 /* Clipboard */,
 				CB020000000000000000000D /* Screenshots */,
 				CB0400000000000000000020 /* Pomodoro */,
+				CB0500000000000000000020 /* AntiDoomscroll */,
 				149E0B982C737D26006418B1 /* Webcam */,
 				B18654312C6F45AE000B926A /* Live activities */,
 				B18654302C6F4590000B926A /* Settings */,
@@ -1118,6 +1161,15 @@
 				CB0400000000000000000007 /* PomodoroTimeEditor.swift in Sources */,
 				CB0400000000000000000008 /* PomodoroView.swift in Sources */,
 				CB0400000000000000000009 /* PomodoroMiniBar.swift in Sources */,
+				CB0500000000000000000200 /* DoomRule.swift in Sources */,
+				CB0500000000000000000201 /* DoomBrowser.swift in Sources */,
+				CB0500000000000000000202 /* DuckSpriteView.swift in Sources */,
+				CB0500000000000000000203 /* DuckController.swift in Sources */,
+				CB0500000000000000000204 /* AntiDoomscrollManager.swift in Sources */,
+				CB0500000000000000000205 /* InstalledApps.swift in Sources */,
+				CB0500000000000000000206 /* AppDelegate+AntiDoomscroll.swift in Sources */,
+				CB0500000000000000000207 /* AntiDoomscrollView.swift in Sources */,
+				CB0500000000000000000208 /* DoomShot.swift in Sources */,
 				CB0300000000000000000001 /* ScreenshotSelectionModel.swift in Sources */,
 				1132E5142E777B920068732D /* YouTubeMusicNetworking.swift in Sources */,
 				1132E5122E777B6E0068732D /* YouTubeMusicModels.swift in Sources */,
@@ -1370,7 +1422,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSBackgroundOnly = NO;
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "This app uses AppleEvents to control music";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Boring Notch uses AppleEvents to control music and, for the Anti-Doomscroll duck, to read and close tabs in your browsers.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "This app uses the calendar to display your calendar events";
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to display a live camera view";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -1423,7 +1475,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSBackgroundOnly = NO;
 				INFOPLIST_KEY_LSUIElement = YES;
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "This app uses AppleEvents to control music";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Boring Notch uses AppleEvents to control music and, for the Anti-Doomscroll duck, to read and close tabs in your browsers.";
 				INFOPLIST_KEY_NSCalendarsUsageDescription = "This app uses the calendar to display your calendar events";
 				INFOPLIST_KEY_NSCameraUsageDescription = "This app uses the camera to display a live camera view";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";

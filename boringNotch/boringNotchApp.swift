@@ -298,6 +298,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         ScreenshotStateViewModel.shared.restoreAccessIfAvailable()
 
         setupPomodoroAlarmObserver()
+        setupAntiDoomscroll()
 
         NotificationCenter.default.addObserver(
             self,
